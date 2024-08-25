@@ -1,0 +1,12 @@
+package com.fukkit;
+
+public class Utils {
+    public static <T> boolean contains(T[] array, T target) {
+        for (T element : array) {
+            if (element.equals(target)) {
+                return true;
+            }
+        }
+        return false;
+    }
+}

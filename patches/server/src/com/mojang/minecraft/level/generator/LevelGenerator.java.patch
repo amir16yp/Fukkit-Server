@@ -1,0 +1,64 @@
+--- a/src/com/mojang/minecraft/level/generator/LevelGenerator.java
++++ b/src/com/mojang/minecraft/level/generator/LevelGenerator.java
+@@ -9,23 +9,58 @@
+ import java.util.ArrayList;
+ import java.util.Random;
+ 
+-public final class LevelGenerator {
++public class LevelGenerator {
+ 
+    private MinecraftServer server;
+    private int width;
+    private int depth;
+    private int height;
+-   private Random random = new Random();
++   private Random random;
+    private byte[] blocks;
+    private int waterLevel;
+    private int[] h = new int[1048576];
+ 
++   public int getWidth()
++   {
++      return width;
++   }
++
++   public int getDepth()
++   {
++      return depth;
++   }
++
++   public int getHeight()
++   {
++      return height;
++   }
++
++   public void setHeight(int h)
++   {
++      this.height = h;
++   }
++
++   public void setDepth(int d)
++   {
++      this.depth = d;
++   }
++
++   public void setWidth(int w)
++   {
++      this.width = w;
++   }
++
++   public LevelGenerator(MinecraftServer var1, long seed) {
++      this.server = var1;
++      this.random = new Random(seed);
++   }
+ 
+    public LevelGenerator(MinecraftServer var1) {
+       this.server = var1;
++      this.random = new Random();
+    }
+ 
+-   public final Level generate(String var1, int var2, int var3, int var4) {
++   public Level generate(String var1, int var2, int var3, int var4) {
+       this.server.a("Generating level");
+       this.width = 256;
+       this.depth = 256;

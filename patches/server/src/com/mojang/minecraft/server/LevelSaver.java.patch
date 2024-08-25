@@ -1,0 +1,13 @@
+--- a/src/com/mojang/minecraft/server/LevelSaver.java
++++ b/src/com/mojang/minecraft/server/LevelSaver.java
+@@ -14,9 +14,9 @@
+ 
+ 
+    LevelSaver(NetworkManager var1, byte[] var2) {
++      super();
+       this.networkManager = var1;
+       this.bytes = var2;
+-      super();
+    }
+ 
+    public final void run() {

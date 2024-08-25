@@ -1,0 +1,22 @@
+--- a/src/com/mojang/net/BindTo.java
++++ b/src/com/mojang/net/BindTo.java
+@@ -1,7 +1,10 @@
+ package com.mojang.net;
+ 
+ import com.mojang.minecraft.server.MinecraftServer;
++
++import java.io.IOException;
+ import java.net.InetSocketAddress;
++import java.net.SocketException;
+ import java.nio.channels.ServerSocketChannel;
+ import java.util.LinkedList;
+ import java.util.List;
+@@ -13,7 +16,7 @@
+    public List c = new LinkedList();
+ 
+ 
+-   public BindTo(int var1, MinecraftServer var2) {
++   public BindTo(int var1, MinecraftServer var2) throws SocketException, IOException {
+       this.server = var2;
+       this.serverChannel = ServerSocketChannel.open();
+       this.serverChannel.socket().bind(new InetSocketAddress(var1));

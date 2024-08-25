@@ -1,0 +1,11 @@
+--- a/src/com/mojang/minecraft/level/Level.java
++++ b/src/com/mojang/minecraft/level/Level.java
+@@ -168,8 +168,6 @@
+       this.listeners.add(var1);
+    }
+ 
+-   public void finalize() {}
+-
+    public void removeListener$74652038(MinecraftServer var1) {
+       this.listeners.remove(var1);
+    }

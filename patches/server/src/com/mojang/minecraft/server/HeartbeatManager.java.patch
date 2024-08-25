@@ -1,0 +1,21 @@
+--- a/src/com/mojang/minecraft/server/HeartbeatManager.java
++++ b/src/com/mojang/minecraft/server/HeartbeatManager.java
+@@ -18,9 +18,9 @@
+ 
+ 
+    HeartbeatManager(MinecraftServer var1, String var2) {
++      super();
+       this.server = var1;
+       this.name = var2;
+-      super();
+    }
+ 
+    public final void run() {
+@@ -52,6 +52,7 @@
+          }
+ 
+          var9.close();
++         return;
+       } catch (Exception var7) {
+          MinecraftServer.logger.severe("Failed to assemble heartbeat: " + var7);
+          var7.printStackTrace();

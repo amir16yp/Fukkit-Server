@@ -1,0 +1,231 @@
+package com.fukkit;
+
+import com.mojang.minecraft.net.PacketType;
+import com.mojang.minecraft.server.MinecraftServer;
+import com.mojang.minecraft.server.NetworkManager;
+import com.fukkit.event.EventSystem;
+import com.mojang.minecraft.level.Level;
+import com.mojang.minecraft.level.generator.LevelGenerator;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.function.Consumer;
+import java.util.logging.LogRecord;
+import java.util.logging.Logger;
+
+public class API {
+    private static API instance;
+    private final MinecraftServer server;
+    private final Map<String, Consumer<String[]>> customCommands;
+    private int levelWidth = 256;
+    private int levelDepth = 256;
+    private int levelHeight = 64;
+    private Class<? extends LevelGenerator> levelGeneratorClass = LevelGenerator.class;
+    private static Map<String, PrefixedLogger> pluginLoggers = new HashMap<>();
+    public static Logger serverLogger = Logger.getLogger("MinecraftServer");
+
+    public Logger getLogger(String pluginName) {
+        return pluginLoggers.computeIfAbsent(pluginName, name -> {
+            PrefixedLogger newLogger = new PrefixedLogger(serverLogger, "[" + name + "] ");
+            newLogger.setParent(serverLogger);
+            return newLogger;
+        });
+    }
+
+    class PrefixedLogger extends Logger {
+    private final String prefix;
+
+    PrefixedLogger(Logger parent, String prefix) {
+        super(parent.getName() + "." + prefix.trim(), parent.getResourceBundleName());
+        this.prefix = prefix;
+        setParent(parent);
+    }
+
+    @Override
+    public void log(LogRecord record) {
+        LogRecord newRecord = new LogRecord(record.getLevel(), prefix + record.getMessage());
+        newRecord.setLoggerName(record.getLoggerName());
+        newRecord.setMillis(record.getMillis());
+        newRecord.setParameters(record.getParameters());
+        newRecord.setResourceBundle(record.getResourceBundle());
+        newRecord.setResourceBundleName(record.getResourceBundleName());
+        newRecord.setSequenceNumber(record.getSequenceNumber());
+        newRecord.setSourceClassName(record.getSourceClassName());
+        newRecord.setSourceMethodName(record.getSourceMethodName());
+        newRecord.setThreadID(record.getThreadID());
+        newRecord.setThrown(record.getThrown());
+        super.log(newRecord);
+    }
+}
+
+    
+    public void setLevelDimensions(int width, int depth, int height) {
+        this.levelWidth = width;
+        this.levelDepth = depth;
+        this.levelHeight = height;
+    }
+
+    public int[] getLevelDimensions()
+    {
+        return new int[] {
+            levelWidth,
+            levelDepth,
+            levelHeight
+        };
+    }
+
+
+    public void registerEvents(Plugin plugin, EventSystem.Listener listener) {
+        EventSystem.registerEvents(plugin, listener);
+    }
+
+    public void setLevelGeneratorClass(Class<? extends LevelGenerator> generatorClass) {
+        this.levelGeneratorClass = generatorClass;
+        if (server != null) {
+            server.setLevelGeneratorClass(generatorClass);
+        }
+    }
+
+    public Class<? extends LevelGenerator> getLevelGeneratorClass() {
+        return this.levelGeneratorClass;
+    }
+
+    private API(MinecraftServer server) {
+        this.customCommands = new HashMap<>();
+        this.server = server;
+    }
+
+    public static void initialize(MinecraftServer server) {
+        if (instance == null) {
+            instance = new API(server);
+            instance.setLevelDimensions(256, 256, 64);
+        }
+
+        server.setLevelGeneratorClass(instance.levelGeneratorClass);
+
+    }
+
+    public static API getInstance() {
+        if (instance == null) {
+            throw new IllegalStateException("API not initialized. Call initialize() first.");
+        }
+        return instance;
+    }
+
+    public Player getPlayer(String name) {
+        NetworkManager manager = getPlayerHandle(name);
+        return manager != null ? new Player(manager) : null;
+    }
+
+    public NetworkManager getPlayerHandle(String name) {
+        for (NetworkManager manager : this.server.networkManager) {
+            if (manager != null && manager.playerName.equalsIgnoreCase(name)) {
+                return manager;
+            }
+        }
+        return null;
+    }
+
+    public void sendGlobalMessage(String msg) {
+        this.server.a(PacketType.CHAT_MESSAGE, new Object[]{Integer.valueOf(-1), msg});
+    }
+
+    public List<Player> getOnlinePlayers() {
+        List<Player> players = new ArrayList<>();
+        for (NetworkManager manager : this.server.networkManager) {
+            if (manager != null) {
+                players.add(new Player(manager));
+            }
+        }
+        return players;
+    }
+
+    public void kickPlayer(String playerName, String reason) {
+        NetworkManager player = getPlayerHandle(playerName);
+        if (player != null) {
+            player.a(reason);
+        }
+    }
+
+    public void banPlayer(String playerName) {
+        this.server.e(playerName);
+    }
+
+    public void unbanPlayer(String playerName) {
+        this.server.playerManager2.removePlayer(playerName);
+    }
+
+    public boolean isPlayerBanned(String playerName) {
+        return this.server.playerManager2.containsPlayer(playerName);
+    }
+
+    public void opPlayer(String playerName) {
+        this.server.f(playerName);
+    }
+
+    public void deopPlayer(String playerName) {
+        this.server.g(playerName);
+    }
+
+    public boolean isPlayerOp(String playerName) {
+        return this.server.playerManager1.containsPlayer(playerName);
+    }
+
+    public Level getMainLevel() {
+        return this.server.mainLevel;
+    }
+
+    public void setBlock(int x, int y, int z, byte blockType) {
+        Level level = getMainLevel();
+        level.setTile(x, y, z, blockType);
+        this.server.a(x, y, z);  // Notify clients of the block change
+    }
+
+    public byte getBlockType(int x, int y, int z) {
+        return (byte) getMainLevel().getTile(x, y, z);
+    }
+
+    public void executeConsoleCommand(String command) {
+        this.server.a(null, command);
+    }
+
+    public void processConsoleInput(String input) {
+        String[] parts = input.split("\\s+");
+        String commandName = parts[0].toLowerCase();
+        
+        if (customCommands.containsKey(commandName)) {
+            String[] args = new String[parts.length - 1];
+            System.arraycopy(parts, 1, args, 0, args.length);
+            customCommands.get(commandName).accept(args);
+        } else {
+            // If it's not a custom command, pass it to the server's default command handler
+            server.a(null, input);
+        }
+    }
+
+    public void processPlayerCommand(String input, Player player) {
+        String[] parts = input.split("\\s+");
+        String commandName = parts[0].toLowerCase();
+        
+        if (customCommands.containsKey(commandName)) {
+            String[] args = new String[parts.length - 1];
+            System.arraycopy(parts, 1, args, 0, args.length);
+            customCommands.get(commandName).accept(args);
+        } else {
+            // If it's not a custom command, pass it to the server's default command handler
+            server.a(player.getHandle(), input);
+        }
+    }
+
+
+    public void registerCommand(String commandName, Consumer<String[]> handler) {
+        customCommands.put(commandName.toLowerCase(), handler);
+    }
+
+    public MinecraftServer getServer() {
+        return this.server;
+    }
+
+}

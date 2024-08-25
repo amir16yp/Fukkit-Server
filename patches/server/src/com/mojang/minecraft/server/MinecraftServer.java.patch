@@ -1,0 +1,168 @@
+--- a/src/com/mojang/minecraft/server/MinecraftServer.java
++++ b/src/com/mojang/minecraft/server/MinecraftServer.java
+@@ -1,5 +1,7 @@
+ package com.mojang.minecraft.server;
+ 
++import com.fukkit.API;
++import com.fukkit.PluginLoader;
+ import com.mojang.minecraft.level.LevelIO;
+ import com.mojang.minecraft.level.generator.LevelGenerator;
+ import com.mojang.minecraft.net.PacketType;
+@@ -19,6 +21,7 @@
+ import java.io.FileReader;
+ import java.io.FileWriter;
+ import java.io.IOException;
++import java.net.SocketException;
+ import java.net.URLEncoder;
+ import java.nio.channels.SocketChannel;
+ import java.text.DateFormat;
+@@ -51,7 +54,7 @@
+    public String MOTD;
+    private int port;
+    public boolean adminSlot;
+-   private NetworkManager[] networkManager;
++   public NetworkManager[] networkManager;
+    public PlayerManager playerManager1 = new PlayerManager("Admins", new File("admins.txt"));
+    public PlayerManager playerManager2 = new PlayerManager("Banned", new File("banned.txt"));
+    private PlayerManager playerManager3 = new PlayerManager("Banned (IP)", new File("banned-ip.txt"));
+@@ -63,9 +66,18 @@
+    public boolean verifyNames;
+    private boolean growTrees;
+    private int maxConnections;
++   private Class<? extends LevelGenerator> levelGeneratorClass = LevelGenerator.class;
+ 
++   public Properties getProperties()
++   {
++      return this.properties;
++   }
++
++   public void setLevelGeneratorClass(Class<? extends LevelGenerator> generatorClass) {
++      this.levelGeneratorClass = generatorClass;
++  }
+ 
+-   public MinecraftServer() {
++   public MinecraftServer() throws SocketException, IOException {
+       this.saltGenerator = new SaltGenerator(this.salt);
+       this.verifyNames = false;
+       this.growTrees = false;
+@@ -89,10 +101,6 @@
+             this.maxPlayers = 1;
+          }
+ 
+-         if(this.maxPlayers > 32) {
+-            this.maxPlayers = 32;
+-         }
+-
+          this.maxConnections = Integer.parseInt(this.properties.getProperty("max-connections", "3"));
+          this.properties.setProperty("server-name", this.serverName);
+          this.properties.setProperty("motd", this.MOTD);
+@@ -103,6 +111,9 @@
+          this.properties.setProperty("max-connections", "3");
+          this.properties.setProperty("grow-trees", "" + this.growTrees);
+          this.properties.setProperty("admin-slot", "" + this.adminSlot);
++         long seed = new Random().nextLong();
++         //logger.info("Using seed " + seed);
++         properties.setProperty("seed", String.valueOf(seed));
+       } catch (Exception var3) {
+          var3.printStackTrace();
+          logger.warning("server.properties is broken! Delete it or fix it!");
+@@ -567,7 +578,7 @@
+ 
+    }
+ 
+-   private void e(String var1) {
++   public void e(String var1) {
+       this.playerManager2.addPlayer(var1);
+       boolean var2 = false;
+       Iterator var3 = this.n.iterator();
+@@ -586,7 +597,7 @@
+ 
+    }
+ 
+-   private void f(String var1) {
++   public void f(String var1) {
+       this.playerManager1.addPlayer(var1);
+       Iterator var3 = this.n.iterator();
+ 
+@@ -600,7 +611,7 @@
+ 
+    }
+ 
+-   private void g(String var1) {
++   public void g(String var1) {
+       this.playerManager1.removePlayer(var1);
+       Iterator var3 = this.n.iterator();
+ 
+@@ -668,6 +679,8 @@
+          MinecraftServer var6;
+          MinecraftServer var1 = var6 = new MinecraftServer();
+          logger.info("Setting up");
++         API.initialize(var1);
++         PluginLoader.loadPlugins();
+          File var2;
+          if((var2 = new File("server_level.dat")).exists()) {
+             try {
+@@ -680,10 +693,52 @@
+             logger.warning("No level file found. Generating a new level");
+          }
+ 
+-         if(var1.mainLevel == null) {
+-            var1.mainLevel = (new LevelGenerator(var1)).generate("--", 256, 256, 64);
+-         }
++         if(var1.mainLevel == null) 
++         {
++             Properties properties = var1.getProperties();
++             long seed;
++             boolean newSeed = false;
++             if (properties.containsKey("seed"))
++             {
++                 try {
++                     seed = Long.parseLong(properties.getProperty("seed"));
++                     //logger.info("using seed " + seed);
++                 } catch (NumberFormatException e) {
++                     logger.warning("Invalid seed in properties. Generating a new seed.");
++                     seed = new Random().nextLong();
++                     newSeed = true;
++                 }
++             }
++             else {
++                 seed = new Random().nextLong();
++                 newSeed = true;
++             }
++ 
++             if (newSeed) {
++                 properties.setProperty("seed", String.valueOf(seed));
++                 try (FileOutputStream out = new FileOutputStream("server.properties")) {
++                     properties.store(out, "Minecraft server properties");
++                 } catch (IOException e) {
++                     logger.warning("Failed to save server.properties with new seed: " + e.getMessage());
++                 }
++             }
++ 
++             logger.info("Using seed: " + seed);
++                
++             // Use the set LevelGenerator class
++             LevelGenerator generator;
++             try {
++                 generator = var1.levelGeneratorClass.getConstructor(MinecraftServer.class, long.class).newInstance(var1, seed);
++                 logger.info("Using LevelGenerator: " + var1.levelGeneratorClass.getSimpleName());
++             } catch (Exception e) {
++                 logger.warning("Failed to instantiate LevelGenerator. Using default.");
++                 generator = new LevelGenerator(var1, seed);
++             }
++             int[] levelDimensions = API.getInstance().getLevelDimensions();
++             var1.mainLevel = generator.generate("--", levelDimensions[0], levelDimensions[1], levelDimensions[2]);
+ 
++         }
++         
+          try {
+             new LevelIO(var1);
+             LevelIO.save(var1.mainLevel, new FileOutputStream("server_level.dat"));
+@@ -695,6 +750,7 @@
+          var1.mainLevel.growTrees = var1.growTrees;
+          var1.mainLevel.addListener$74652038(var1);
+          (new Thread(var6)).start();
++
+       } catch (Exception var5) {
+          logger.severe("Failed to start the server!");
+          var5.printStackTrace();

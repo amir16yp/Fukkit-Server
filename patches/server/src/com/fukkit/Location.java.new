@@ -1,0 +1,88 @@
+package com.fukkit;
+
+import com.mojang.minecraft.level.Level;
+import com.mojang.minecraft.level.tile.Block;
+
+public class Location {
+    private int x;
+    private int y;
+    private int z;
+    private Level level;
+
+    public Location(int rawX, int rawY, int rawZ) {
+        this.level = API.getInstance().getServer().mainLevel;
+        this.x = rawX >> 5; // Divide by 32
+        this.y = rawY >> 5;
+        this.z = rawZ >> 5;
+    }
+
+    public int getX() {
+        return x;
+    }
+
+    public int getY() {
+        return y;
+    }
+
+    public int getZ() {
+        return z;
+    }
+
+    public int getTileId() {
+        Level level = API.getInstance().getServer().mainLevel;
+        return level.getTile(x, y, z);
+    }
+
+    public Block getBlock()
+    {
+        return Block.fromID(getTileId());
+    }
+
+    public boolean setTile(Block block) {
+        Level level = this.level;
+        
+        // Check if the coordinates are within the level bounds
+        if (x >= 0 && y >= 0 && z >= 0 && x < level.width && y < level.depth && z < level.height) {
+            // Get the current block at this location
+            Block currentBlock = Block.blocks[level.getTile(x, y, z)];
+            
+            // Check if the current block is air or a liquid
+            if (currentBlock == null || currentBlock == Block.WATER || currentBlock == Block.STATIONARY_WATER 
+                || currentBlock == Block.LAVA || currentBlock == Block.STATIONARY_LAVA) {
+                
+                // Special case for bedrock (assuming 'i' is a property indicating admin status)
+                if (API.getInstance().isPlayerOp(Thread.currentThread().getName()) && block.id == Block.STONE.id) {
+                    level.setTile(x, y, z, Block.BEDROCK.id);
+                } else {
+                    level.setTile(x, y, z, (byte) block.id);
+                }
+                
+                // Call onPlace method of the placed block
+                block.onPlace(level, x, y, z);
+                
+                // Notify the server about the block change
+                API.getInstance().getServer().a(x, y, z);
+                
+                return true;
+            }
+        }
+        
+        return false;
+    }
+    @Override
+    public String toString() {
+        return "Location{" +
+               "x=" + x +
+               ", y=" + y +
+               ", z=" + z +
+               '}';
+    }
+
+    public static Location fromRawCoordinates(int rawX, int rawY, int rawZ) {
+        return new Location(rawX, rawY, rawZ);
+    }
+
+    public static Location fromTileCoordinates(int tileX, int tileY, int tileZ) {
+        return new Location(tileX << 5, tileY << 5, tileZ << 5);
+    }
+}

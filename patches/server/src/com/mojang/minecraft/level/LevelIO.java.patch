@@ -1,0 +1,11 @@
+--- a/src/com/mojang/minecraft/level/LevelIO.java
++++ b/src/com/mojang/minecraft/level/LevelIO.java
+@@ -63,7 +63,7 @@
+          }
+       } catch (Exception var9) {
+          var9.printStackTrace();
+-         "Failed to load level: " + var9.toString();
++         this.server.b("Failed to load level: " + var9.toString());
+          return null;
+       }
+    }
