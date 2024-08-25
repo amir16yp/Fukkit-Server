@@ -85,4 +85,54 @@ public class Location {
     public static Location fromTileCoordinates(int tileX, int tileY, int tileZ) {
         return new Location(tileX << 5, tileY << 5, tileZ << 5);
     }
+
+    public Location add(int dx, int dy, int dz) {
+        return new Location((this.x << 5) + (dx << 5), (this.y << 5) + (dy << 5), (this.z << 5) + (dz << 5));
+    }
+
+    public double distance(Location other) {
+        int dx = this.x - other.x;
+        int dy = this.y - other.y;
+        int dz = this.z - other.z;
+        return Math.sqrt(dx * dx + dy * dy + dz * dz);
+    }
+
+    public boolean isAir() {
+        return this.getTileId() == 0;
+    }
+
+    public boolean isSolid() {
+        Block block = this.getBlock();
+        return block != null && block.isSolid();
+    }
+
+    public Location[] getAdjacentLocations() {
+        return new Location[] {
+            this.add(1, 0, 0),
+            this.add(-1, 0, 0),
+            this.add(0, 1, 0),
+            this.add(0, -1, 0),
+            this.add(0, 0, 1),
+            this.add(0, 0, -1)
+        };
+    }
+
+    public boolean isWithinBounds() {
+        return x >= 0 && y >= 0 && z >= 0 && x < level.width && y < level.depth && z < level.height;
+    }
+
+    public Location getHighestBlock() {
+        for (int y = level.depth - 1; y >= 0; y--) {
+            Location loc = new Location(this.x << 5, y << 5, this.z << 5);
+            if (!loc.isAir()) {
+                return loc;
+            }
+        }
+        return new Location(this.x << 5, 0, this.z << 5);
+    }
+
+       // New clone method
+    public Location clone() {
+        return new Location(this.x << 5, this.y << 5, this.z << 5);
+    }
 }

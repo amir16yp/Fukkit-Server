@@ -4,4 +4,5 @@ import com.mojang.minecraft.server.MinecraftServer;
 
 public interface Plugin {
     void init();
+    String getName();
 }

@@ -154,6 +154,7 @@ public class EventSystem {
         private byte newYaw, newPitch;
         private short oldX, oldY, oldZ;
         private byte oldYaw, oldPitch;
+        public boolean newStep;
     
         public PlayerMoveEvent(Player player, short oldX, short oldY, short oldZ, byte oldYaw, byte oldPitch,
                                short newX, short newY, short newZ, byte newYaw, byte newPitch) {

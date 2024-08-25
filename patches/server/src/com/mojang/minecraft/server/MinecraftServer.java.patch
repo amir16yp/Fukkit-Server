@@ -93,16 +93,19 @@
        this.playerManager1.removePlayer(var1);
        Iterator var3 = this.n.iterator();
  
-@@ -668,6 +679,8 @@
+@@ -667,7 +678,11 @@
+       try {
           MinecraftServer var6;
           MinecraftServer var1 = var6 = new MinecraftServer();
-          logger.info("Setting up");
 +         API.initialize(var1);
 +         PluginLoader.loadPlugins();
++         logger = API.getInstance().getLogger("Server");         
+          logger.info("Setting up");
++
           File var2;
           if((var2 = new File("server_level.dat")).exists()) {
              try {
-@@ -680,10 +693,52 @@
+@@ -680,10 +695,52 @@
              logger.warning("No level file found. Generating a new level");
           }
  
@@ -158,7 +161,7 @@
           try {
              new LevelIO(var1);
              LevelIO.save(var1.mainLevel, new FileOutputStream("server_level.dat"));
-@@ -695,6 +750,7 @@
+@@ -695,6 +752,7 @@
           var1.mainLevel.growTrees = var1.growTrees;
           var1.mainLevel.addListener$74652038(var1);
           (new Thread(var6)).start();

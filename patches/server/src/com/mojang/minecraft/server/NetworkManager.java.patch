@@ -26,8 +26,9 @@
  
           if(var1.startsWith("/")) {
              if(this.server.playerManager1.containsPlayer(this.playerName)) {
+-               this.server.a(this, var1.substring(1));
 +               API.getInstance().processPlayerCommand(var1.substring(1), new Player(this));
-                this.server.a(this, var1.substring(1));
++               //this.server.a(this, var1.substring(1));
              } else {
                 this.b(PacketType.CHAT_MESSAGE, new Object[]{Integer.valueOf(-1), "You\'re not a server admin!"});
              }
@@ -45,7 +46,7 @@
           }
        }
     }
-@@ -185,181 +202,226 @@
+@@ -185,181 +202,229 @@
     }
  
     public final void a() {
@@ -240,25 +241,6 @@
 -                        this.server.a(this, PacketType.POSITION_ROTATION, new Object[]{Integer.valueOf(this.playerID), Short.valueOf(var13), Short.valueOf(var6), Short.valueOf(var5), Byte.valueOf(var4), Byte.valueOf(var3)});
 -                        var10000 = false;
 -                        continue;
--                     }
--
--                     if(var13 == this.xSpawn && var6 == this.ySpawn && var5 == this.zSpawn) {
--                        this.yawSpawn = var4;
--                        this.pitchSpawn = var3;
--                        this.server.a(this, PacketType.ROTATION_UPDATE, new Object[]{Integer.valueOf(this.playerID), Byte.valueOf(var4), Byte.valueOf(var3)});
--                     } else if(var4 == this.yawSpawn && var3 == this.pitchSpawn) {
--                        this.xSpawn = var13;
--                        this.ySpawn = var6;
--                        this.zSpawn = var5;
--                        this.server.a(this, PacketType.POSITION_UPDATE, new Object[]{Integer.valueOf(this.playerID), Integer.valueOf(var22), Integer.valueOf(var23), Integer.valueOf(var24)});
--                     } else {
--                        this.xSpawn = var13;
--                        this.ySpawn = var6;
--                        this.zSpawn = var5;
--                        this.yawSpawn = var4;
--                        this.pitchSpawn = var3;
--                        this.server.a(this, PacketType.POSITION_ROTATION_UPDATE, new Object[]{Integer.valueOf(this.playerID), Integer.valueOf(var22), Integer.valueOf(var23), Integer.valueOf(var24), Byte.valueOf(var4), Byte.valueOf(var3)});
--                     }
 +              } else {
 +                  ((Byte)var2[0]).byteValue();
 +                  var10001 = ((Short)var2[1]).shortValue();
@@ -271,69 +253,89 @@
 +                  var6 = var10002;
 +                  var13 = var10001;
 +                  
-+                  // Fire PlayerMoveEvent
-+                  EventSystem.PlayerMoveEvent moveEvent = new EventSystem.PlayerMoveEvent(
-+                      new Player(this),
-+                      (short)this.xSpawn, (short)this.ySpawn, (short)this.zSpawn, (byte)this.yawSpawn, (byte)this.pitchSpawn,
-+                      var13, var6, var5, var4, var3
-+                  );
-+                  EventSystem.callEvent(moveEvent);
-+  
-+                  // Check if the event was cancelled or the position was modified
-+                  if (!moveEvent.isCancelled()) {
-+                      var13 = moveEvent.getNewX();
-+                      var6 = moveEvent.getNewY();
-+                      var5 = moveEvent.getNewZ();
-+                      var4 = moveEvent.getNewYaw();
-+                      var3 = moveEvent.getNewPitch();
-+  
-+                      if (var13 == this.xSpawn && var6 == this.ySpawn && var5 == this.zSpawn && var4 == this.yawSpawn && var3 == this.pitchSpawn) {
-+                          var10000 = true;
-+                      } else {
-+                          boolean var21 = var13 == this.xSpawn && var6 == this.ySpawn && var5 == this.zSpawn;
-+                          if (this.t++ % 2 == 0) {
-+                              int var22 = var13 - this.xSpawn;
-+                              int var23 = var6 - this.ySpawn;
-+                              int var24 = var5 - this.zSpawn;
-+                              if (var22 >= 128 || var22 < -128 || var23 >= 128 || var23 < -128 || var24 >= 128 || var24 < -128 || this.t % 20 <= 1) {
-+                                  this.xSpawn = var13;
-+                                  this.ySpawn = var6;
-+                                  this.zSpawn = var5;
-+                                  this.yawSpawn = var4;
-+                                  this.pitchSpawn = var3;
-+                                  this.server.a(this, PacketType.POSITION_ROTATION, new Object[]{Integer.valueOf(this.playerID), Short.valueOf(var13), Short.valueOf(var6), Short.valueOf(var5), Byte.valueOf(var4), Byte.valueOf(var3)});
-+                                  var10000 = false;
-+                                  continue;
-+                              }
-+  
-+                              if (var13 == this.xSpawn && var6 == this.ySpawn && var5 == this.zSpawn) {
-+                                  this.yawSpawn = var4;
-+                                  this.pitchSpawn = var3;
-+                                  this.server.a(this, PacketType.ROTATION_UPDATE, new Object[]{Integer.valueOf(this.playerID), Byte.valueOf(var4), Byte.valueOf(var3)});
-+                              } else if (var4 == this.yawSpawn && var3 == this.pitchSpawn) {
-+                                  this.xSpawn = var13;
-+                                  this.ySpawn = var6;
-+                                  this.zSpawn = var5;
-+                                  this.server.a(this, PacketType.POSITION_UPDATE, new Object[]{Integer.valueOf(this.playerID), Integer.valueOf(var22), Integer.valueOf(var23), Integer.valueOf(var24)});
-+                              } else {
-+                                  this.xSpawn = var13;
-+                                  this.ySpawn = var6;
-+                                  this.zSpawn = var5;
-+                                  this.yawSpawn = var4;
-+                                  this.pitchSpawn = var3;
-+                                  this.server.a(this, PacketType.POSITION_ROTATION_UPDATE, new Object[]{Integer.valueOf(this.playerID), Integer.valueOf(var22), Integer.valueOf(var23), Integer.valueOf(var24), Byte.valueOf(var4), Byte.valueOf(var3)});
-+                              }
-+                          }
-+                          var10000 = var21;
-+                      }
-+                  } else {
-+                      var10000 = true;
-                   }
++                  if (var13 != this.xSpawn || var6 != this.ySpawn || var5 != this.zSpawn || var4 != this.yawSpawn || var3 != this.pitchSpawn) {
++                     // Fire PlayerMoveEvent
++                     EventSystem.PlayerMoveEvent moveEvent = new EventSystem.PlayerMoveEvent(
++                         new Player(this),
++                         (short)this.xSpawn, (short)this.ySpawn, (short)this.zSpawn, (byte)this.yawSpawn, (byte)this.pitchSpawn,
++                         var13, var6, var5, var4, var3
++                     );
++                     if ((int) var13 != (int) this.xSpawn || (int) var6 != (int) this.ySpawn || (int) var5 != (int) this.zSpawn) {
++                        moveEvent.newStep = true;
+                      }
+-
+-                     if(var13 == this.xSpawn && var6 == this.ySpawn && var5 == this.zSpawn) {
+-                        this.yawSpawn = var4;
+-                        this.pitchSpawn = var3;
+-                        this.server.a(this, PacketType.ROTATION_UPDATE, new Object[]{Integer.valueOf(this.playerID), Byte.valueOf(var4), Byte.valueOf(var3)});
+-                     } else if(var4 == this.yawSpawn && var3 == this.pitchSpawn) {
+-                        this.xSpawn = var13;
+-                        this.ySpawn = var6;
+-                        this.zSpawn = var5;
+-                        this.server.a(this, PacketType.POSITION_UPDATE, new Object[]{Integer.valueOf(this.playerID), Integer.valueOf(var22), Integer.valueOf(var23), Integer.valueOf(var24)});
++                     EventSystem.callEvent(moveEvent);
++               
++                     // Check if the event was cancelled or the position was modified
++                     if (!moveEvent.isCancelled()) {
++                         var13 = moveEvent.getNewX();
++                         var6 = moveEvent.getNewY();
++                         var5 = moveEvent.getNewZ();
++                         var4 = moveEvent.getNewYaw();
++                         var3 = moveEvent.getNewPitch();
++                 
++                         boolean var21 = var13 == this.xSpawn && var6 == this.ySpawn && var5 == this.zSpawn;
++                         if (this.t++ % 2 == 0) {
++                             int var22 = var13 - this.xSpawn;
++                             int var23 = var6 - this.ySpawn;
++                             int var24 = var5 - this.zSpawn;
++                             if (var22 >= 128 || var22 < -128 || var23 >= 128 || var23 < -128 || var24 >= 128 || var24 < -128 || this.t % 20 <= 1) {
++                                 this.xSpawn = var13;
++                                 this.ySpawn = var6;
++                                 this.zSpawn = var5;
++                                 this.yawSpawn = var4;
++                                 this.pitchSpawn = var3;
++                                 this.server.a(this, PacketType.POSITION_ROTATION, new Object[]{Integer.valueOf(this.playerID), Short.valueOf(var13), Short.valueOf(var6), Short.valueOf(var5), Byte.valueOf(var4), Byte.valueOf(var3)});
++                                 var10000 = false;
++                                 continue;
++                             }
++                 
++                             if (var13 == this.xSpawn && var6 == this.ySpawn && var5 == this.zSpawn) {
++                                 this.yawSpawn = var4;
++                                 this.pitchSpawn = var3;
++                                 this.server.a(this, PacketType.ROTATION_UPDATE, new Object[]{Integer.valueOf(this.playerID), Byte.valueOf(var4), Byte.valueOf(var3)});
++                             } else if (var4 == this.yawSpawn && var3 == this.pitchSpawn) {
++                                 this.xSpawn = var13;
++                                 this.ySpawn = var6;
++                                 this.zSpawn = var5;
++                                 this.server.a(this, PacketType.POSITION_UPDATE, new Object[]{Integer.valueOf(this.playerID), Integer.valueOf(var22), Integer.valueOf(var23), Integer.valueOf(var24)});
++                             } else {
++                                 this.xSpawn = var13;
++                                 this.ySpawn = var6;
++                                 this.zSpawn = var5;
++                                 this.yawSpawn = var4;
++                                 this.pitchSpawn = var3;
++                                 this.server.a(this, PacketType.POSITION_ROTATION_UPDATE, new Object[]{Integer.valueOf(this.playerID), Integer.valueOf(var22), Integer.valueOf(var23), Integer.valueOf(var24), Byte.valueOf(var4), Byte.valueOf(var3)});
++                             }
++                         }
++                         var10000 = var21;
+                      } else {
+-                        this.xSpawn = var13;
+-                        this.ySpawn = var6;
+-                        this.zSpawn = var5;
+-                        this.yawSpawn = var4;
+-                        this.pitchSpawn = var3;
+-                        this.server.a(this, PacketType.POSITION_ROTATION_UPDATE, new Object[]{Integer.valueOf(this.playerID), Integer.valueOf(var22), Integer.valueOf(var23), Integer.valueOf(var24), Byte.valueOf(var4), Byte.valueOf(var3)});
++                         var10000 = true;
+                      }
+-                  }
 -
 -                  var10000 = var21;
 -               }
 -            }
 -         }
++                 } else {
++                     var10000 = true;
++                 }
 +              }
 +          }
        }
@@ -419,7 +421,7 @@
 +                  this.networkHandler.send(PacketType.SPAWN_PLAYER, new Object[]{Integer.valueOf(var12.playerID), var12.playerName, Integer.valueOf(var12.xSpawn), Integer.valueOf(var12.ySpawn), Integer.valueOf(var12.zSpawn), Integer.valueOf(var12.yawSpawn), Integer.valueOf(var12.pitchSpawn)});
 +              }
 +          }
-+  
++          
 +          this.m = true;
 +          var17 = 0;
 +  
