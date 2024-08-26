@@ -38,6 +38,6 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         upload_url: ${{ github.event.release.upload_url }}
-        asset_path: ./serverout/server.jar
+        asset_path: serverout/server.jar
         asset_name: server.jar
         asset_content_type: application/java-archive
