@@ -1,6 +1,23 @@
 --- a/src/com/mojang/minecraft/level/Level.java
 +++ b/src/com/mojang/minecraft/level/Level.java
-@@ -168,8 +168,6 @@
+@@ -2,15 +2,13 @@
+ 
+ import com.mojang.minecraft.Entity;
+ import com.mojang.minecraft.Vector3DCreator;
+-import com.mojang.minecraft.level.BlockMap;
+-import com.mojang.minecraft.level.NextTickListEntry;
+-import com.mojang.minecraft.level.UNKNOWN0;
+ import com.mojang.minecraft.level.liquid.LiquidType;
+ import com.mojang.minecraft.level.tile.Block;
+ import com.mojang.minecraft.model.Vector3D;
+ import com.mojang.minecraft.phys.AABB;
+ import com.mojang.minecraft.server.MinecraftServer;
+ import com.mojang.util.MathHelper;
++
+ import java.io.Serializable;
+ import java.util.ArrayList;
+ import java.util.Arrays;
+@@ -168,8 +166,6 @@
        this.listeners.add(var1);
     }
  
@@ -9,7 +26,20 @@
     public void removeListener$74652038(MinecraftServer var1) {
        this.listeners.remove(var1);
     }
-@@ -318,7 +316,7 @@
+@@ -230,10 +226,11 @@
+    }
+ 
+    public boolean setTileNoNeighborChange(int var1, int var2, int var3, int var4) {
+-      return this.networkMode?false:this.netSetTileNoNeighborChange(var1, var2, var3, var4);
++      return !this.networkMode && this.netSetTileNoNeighborChange(var1, var2, var3, var4);
+    }
+ 
+    public boolean netSetTileNoNeighborChange(int var1, int var2, int var3, int var4) {
++      // TODO: Add event handler calls here (placeblock, removeblock, etc)
+       if(var1 >= 0 && var2 >= 0 && var3 >= 0 && var1 < this.width && var2 < this.depth && var3 < this.height) {
+          if(var4 == this.blocks[(var2 * this.height + var3) * this.width + var1]) {
+             return false;
+@@ -318,7 +315,7 @@
     }
  
     public boolean isLit(int var1, int var2, int var3) {
@@ -18,7 +48,7 @@
     }
  
     public int getTile(int var1, int var2, int var3) {
-@@ -327,7 +325,7 @@
+@@ -327,7 +324,7 @@
  
     public boolean isSolidTile(int var1, int var2, int var3) {
        Block var4;

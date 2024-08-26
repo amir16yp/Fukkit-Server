@@ -1,0 +1,10 @@
+--- a/src/com/mojang/minecraft/level/generator/noise/OctaveNoise.java
++++ b/src/com/mojang/minecraft/level/generator/noise/OctaveNoise.java
+@@ -1,7 +1,5 @@
+ package com.mojang.minecraft.level.generator.noise;
+ 
+-import com.mojang.minecraft.level.generator.noise.Noise;
+-import com.mojang.minecraft.level.generator.noise.PerlinNoise;
+ import java.util.Random;
+ 
+ public final class OctaveNoise extends Noise {

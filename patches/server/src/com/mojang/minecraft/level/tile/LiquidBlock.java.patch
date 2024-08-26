@@ -1,5 +1,15 @@
 --- a/src/com/mojang/minecraft/level/tile/LiquidBlock.java
 +++ b/src/com/mojang/minecraft/level/tile/LiquidBlock.java
+@@ -2,8 +2,8 @@
+ 
+ import com.mojang.minecraft.level.Level;
+ import com.mojang.minecraft.level.liquid.LiquidType;
+-import com.mojang.minecraft.level.tile.Block;
+ import com.mojang.minecraft.phys.AABB;
++
+ import java.util.Random;
+ 
+ public class LiquidBlock extends Block {
 @@ -43,7 +43,6 @@
        var3 = var3;
        var2 = var2;

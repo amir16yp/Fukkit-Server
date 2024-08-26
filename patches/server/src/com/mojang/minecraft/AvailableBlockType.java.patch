@@ -1,0 +1,10 @@
+--- a/src/com/mojang/minecraft/AvailableBlockType.java
++++ b/src/com/mojang/minecraft/AvailableBlockType.java
+@@ -1,6 +1,7 @@
+ package com.mojang.minecraft;
+ 
+ import com.mojang.minecraft.level.tile.Block;
++
+ import java.util.ArrayList;
+ import java.util.List;
+ 

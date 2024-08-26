@@ -1,6 +1,22 @@
 --- a/src/com/mojang/minecraft/level/LevelIO.java
 +++ b/src/com/mojang/minecraft/level/LevelIO.java
-@@ -63,7 +63,7 @@
+@@ -1,13 +1,8 @@
+ package com.mojang.minecraft.level;
+ 
+-import com.mojang.minecraft.level.Level;
+-import com.mojang.minecraft.level.LevelObjectInputStream;
+ import com.mojang.minecraft.server.MinecraftServer;
+-import java.io.DataInputStream;
+-import java.io.DataOutputStream;
+-import java.io.InputStream;
+-import java.io.ObjectOutputStream;
+-import java.io.OutputStream;
++
++import java.io.*;
+ import java.util.zip.GZIPInputStream;
+ import java.util.zip.GZIPOutputStream;
+ 
+@@ -63,7 +58,7 @@
           }
        } catch (Exception var9) {
           var9.printStackTrace();

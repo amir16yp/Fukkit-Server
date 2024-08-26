@@ -1,0 +1,10 @@
+--- a/src/com/mojang/minecraft/level/tile/WoodBlock.java
++++ b/src/com/mojang/minecraft/level/tile/WoodBlock.java
+@@ -1,7 +1,5 @@
+ package com.mojang.minecraft.level.tile;
+ 
+-import com.mojang.minecraft.level.tile.Block;
+-
+ public final class WoodBlock extends Block {
+ 
+    protected WoodBlock(int var1) {

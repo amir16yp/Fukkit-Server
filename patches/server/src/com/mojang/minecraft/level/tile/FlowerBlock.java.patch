@@ -1,0 +1,12 @@
+--- a/src/com/mojang/minecraft/level/tile/FlowerBlock.java
++++ b/src/com/mojang/minecraft/level/tile/FlowerBlock.java
+@@ -1,8 +1,8 @@
+ package com.mojang.minecraft.level.tile;
+ 
+ import com.mojang.minecraft.level.Level;
+-import com.mojang.minecraft.level.tile.Block;
+ import com.mojang.minecraft.phys.AABB;
++
+ import java.util.Random;
+ 
+ public class FlowerBlock extends Block {

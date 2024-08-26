@@ -1,0 +1,10 @@
+--- a/src/com/mojang/minecraft/level/tile/TNTBlock.java
++++ b/src/com/mojang/minecraft/level/tile/TNTBlock.java
+@@ -1,7 +1,5 @@
+ package com.mojang.minecraft.level.tile;
+ 
+-import com.mojang.minecraft.level.tile.Block;
+-
+ public final class TNTBlock extends Block {
+ 
+    public TNTBlock(int var1, int var2) {

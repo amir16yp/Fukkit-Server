@@ -1,0 +1,9 @@
+--- a/src/com/mojang/minecraft/server/LogFormatter.java
++++ b/src/com/mojang/minecraft/server/LogFormatter.java
+@@ -1,6 +1,5 @@
+ package com.mojang.minecraft.server;
+ 
+-import com.mojang.minecraft.server.MinecraftServer;
+ import java.util.logging.Formatter;
+ import java.util.logging.Level;
+ import java.util.logging.LogRecord;

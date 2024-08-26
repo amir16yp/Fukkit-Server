@@ -1,0 +1,10 @@
+--- a/src/com/mojang/minecraft/Entity.java
++++ b/src/com/mojang/minecraft/Entity.java
+@@ -9,6 +9,7 @@
+ import com.mojang.minecraft.net.UNKNOWN0;
+ import com.mojang.minecraft.phys.AABB;
+ import com.mojang.util.MathHelper;
++
+ import java.io.Serializable;
+ import java.util.ArrayList;
+ 

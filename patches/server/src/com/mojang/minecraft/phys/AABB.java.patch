@@ -1,0 +1,10 @@
+--- a/src/com/mojang/minecraft/phys/AABB.java
++++ b/src/com/mojang/minecraft/phys/AABB.java
+@@ -2,6 +2,7 @@
+ 
+ import com.mojang.minecraft.Vector3DCreator;
+ import com.mojang.minecraft.model.Vector3D;
++
+ import java.io.Serializable;
+ 
+ public class AABB implements Serializable {

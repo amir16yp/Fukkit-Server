@@ -1,0 +1,10 @@
+--- a/src/com/mojang/minecraft/level/generator/noise/CombinedNoise.java
++++ b/src/com/mojang/minecraft/level/generator/noise/CombinedNoise.java
+@@ -1,7 +1,5 @@
+ package com.mojang.minecraft.level.generator.noise;
+ 
+-import com.mojang.minecraft.level.generator.noise.Noise;
+-
+ public final class CombinedNoise extends Noise {
+ 
+    private Noise noise1;

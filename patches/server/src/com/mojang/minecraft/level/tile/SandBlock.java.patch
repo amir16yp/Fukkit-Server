@@ -1,0 +1,10 @@
+--- a/src/com/mojang/minecraft/level/tile/SandBlock.java
++++ b/src/com/mojang/minecraft/level/tile/SandBlock.java
+@@ -2,7 +2,6 @@
+ 
+ import com.mojang.minecraft.level.Level;
+ import com.mojang.minecraft.level.liquid.LiquidType;
+-import com.mojang.minecraft.level.tile.Block;
+ 
+ public final class SandBlock extends Block {
+ 

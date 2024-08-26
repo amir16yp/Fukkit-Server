@@ -1,6 +1,13 @@
 --- a/src/com/mojang/minecraft/server/LevelSaver.java
 +++ b/src/com/mojang/minecraft/server/LevelSaver.java
-@@ -14,9 +14,9 @@
+@@ -1,6 +1,5 @@
+ package com.mojang.minecraft.server;
+ 
+-import com.mojang.minecraft.server.NetworkManager;
+ import java.io.ByteArrayOutputStream;
+ import java.io.DataOutputStream;
+ import java.util.zip.GZIPOutputStream;
+@@ -14,9 +13,9 @@
  
  
     LevelSaver(NetworkManager var1, byte[] var2) {

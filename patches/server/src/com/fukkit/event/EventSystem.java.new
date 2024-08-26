@@ -89,30 +89,6 @@ public class EventSystem {
         }
     }
 
-    public static class BlockRemoveEvent extends Event {
-        private final Player player;
-        private final Location location;
-        private final Block removedBlock;
-
-        public BlockRemoveEvent(Player player, Location location, Block removedBlock) {
-            this.player = player;
-            this.location = location;
-            this.removedBlock = removedBlock;
-        }
-
-        public Player getPlayer() {
-            return player;
-        }
-
-        public Location getLocation() {
-            return location;
-        }
-
-        public Block getRemovedBlock() {
-            return removedBlock;
-        }
-    }
-
 
     public static class PlayerQuitEvent extends Event {
         private final Player player;

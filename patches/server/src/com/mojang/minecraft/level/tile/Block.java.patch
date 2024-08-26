@@ -1,6 +1,35 @@
 --- a/src/com/mojang/minecraft/level/tile/Block.java
 +++ b/src/com/mojang/minecraft/level/tile/Block.java
-@@ -86,7 +86,7 @@
+@@ -3,27 +3,9 @@
+ import com.mojang.minecraft.Vector3DCreator;
+ import com.mojang.minecraft.level.Level;
+ import com.mojang.minecraft.level.liquid.LiquidType;
+-import com.mojang.minecraft.level.tile.BookshelfBlock;
+-import com.mojang.minecraft.level.tile.DirtBlock;
+-import com.mojang.minecraft.level.tile.FlowerBlock;
+-import com.mojang.minecraft.level.tile.GlassBlock;
+-import com.mojang.minecraft.level.tile.GrassBlock;
+-import com.mojang.minecraft.level.tile.LeavesBlock;
+-import com.mojang.minecraft.level.tile.LiquidBlock;
+-import com.mojang.minecraft.level.tile.MetalBlock;
+-import com.mojang.minecraft.level.tile.MushroomBlock;
+-import com.mojang.minecraft.level.tile.OreBlock;
+-import com.mojang.minecraft.level.tile.SandBlock;
+-import com.mojang.minecraft.level.tile.SaplingBlock;
+-import com.mojang.minecraft.level.tile.SlabBlock;
+-import com.mojang.minecraft.level.tile.SpongeBlock;
+-import com.mojang.minecraft.level.tile.StillLiquidBlock;
+-import com.mojang.minecraft.level.tile.StoneBlock;
+-import com.mojang.minecraft.level.tile.TNTBlock;
+-import com.mojang.minecraft.level.tile.Tile$SoundType;
+-import com.mojang.minecraft.level.tile.WoodBlock;
+ import com.mojang.minecraft.model.Vector3D;
+ import com.mojang.minecraft.phys.AABB;
++
+ import java.util.Random;
+ 
+ public class Block {
+@@ -86,7 +68,7 @@
     public static final Block OBSIDIAN;
     public final int id;
     public Tile$SoundType stepsound;
@@ -9,7 +38,7 @@
     private float x1;
     private float y1;
     private float z1;
-@@ -105,6 +105,11 @@
+@@ -105,6 +87,11 @@
        liquid[var1] = false;
     }
  

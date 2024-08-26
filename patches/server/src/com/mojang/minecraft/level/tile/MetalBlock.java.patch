@@ -1,0 +1,10 @@
+--- a/src/com/mojang/minecraft/level/tile/MetalBlock.java
++++ b/src/com/mojang/minecraft/level/tile/MetalBlock.java
+@@ -1,7 +1,5 @@
+ package com.mojang.minecraft.level.tile;
+ 
+-import com.mojang.minecraft.level.tile.Block;
+-
+ public final class MetalBlock extends Block {
+ 
+    public MetalBlock(int var1, int var2) {

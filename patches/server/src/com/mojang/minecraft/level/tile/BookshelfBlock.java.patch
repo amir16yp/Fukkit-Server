@@ -1,0 +1,10 @@
+--- a/src/com/mojang/minecraft/level/tile/BookshelfBlock.java
++++ b/src/com/mojang/minecraft/level/tile/BookshelfBlock.java
+@@ -1,7 +1,5 @@
+ package com.mojang.minecraft.level.tile;
+ 
+-import com.mojang.minecraft.level.tile.Block;
+-
+ public final class BookshelfBlock extends Block {
+ 
+    public BookshelfBlock(int var1, int var2) {

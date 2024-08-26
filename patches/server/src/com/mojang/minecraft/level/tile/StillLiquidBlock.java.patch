@@ -1,0 +1,12 @@
+--- a/src/com/mojang/minecraft/level/tile/StillLiquidBlock.java
++++ b/src/com/mojang/minecraft/level/tile/StillLiquidBlock.java
+@@ -2,8 +2,7 @@
+ 
+ import com.mojang.minecraft.level.Level;
+ import com.mojang.minecraft.level.liquid.LiquidType;
+-import com.mojang.minecraft.level.tile.Block;
+-import com.mojang.minecraft.level.tile.LiquidBlock;
++
+ import java.util.Random;
+ 
+ public final class StillLiquidBlock extends LiquidBlock {
