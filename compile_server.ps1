@@ -9,8 +9,8 @@ function Get-ScriptDirectory {
 $myDir = Get-ScriptDirectory
 $scriptDir = Join-Path -Path $myDir -ChildPath "work/server/"
 $sourceDir = Join-Path -Path $scriptDir -ChildPath "src"
-$destinationDir = Join-Path -Path $scriptDir -ChildPath "output"
-$jarFilePath = Join-Path -Path $scriptDir -ChildPath "server.jar"
+$destinationDir = Join-Path -Path ".\" -ChildPath "serverout"
+$jarFilePath = Join-Path -Path $destinationDir -ChildPath "server.jar"
 
 $mainClass = "com.mojang.minecraft.server.MinecraftServer"  # Replace with your main class package and name
 
