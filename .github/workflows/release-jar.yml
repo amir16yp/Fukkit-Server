@@ -22,7 +22,7 @@ jobs:
       run: bash download.sh
 
     - name: Decompile jars
-      run: decompile.sh
+      run: bash decompile.sh
 
     - name: Apply patches to decompiled jars
       run: bash apply_patches.sh
