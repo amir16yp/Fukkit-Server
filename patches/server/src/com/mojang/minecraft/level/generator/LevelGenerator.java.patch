@@ -1,6 +1,6 @@
 --- a/src/com/mojang/minecraft/level/generator/LevelGenerator.java
 +++ b/src/com/mojang/minecraft/level/generator/LevelGenerator.java
-@@ -9,23 +9,58 @@
+@@ -9,28 +9,60 @@
  import java.util.ArrayList;
  import java.util.Random;
  
@@ -8,15 +8,21 @@
 +public class LevelGenerator {
  
     private MinecraftServer server;
-    private int width;
-    private int depth;
-    private int height;
+-   private int width;
+-   private int depth;
+-   private int height;
 -   private Random random = new Random();
-+   private Random random;
-    private byte[] blocks;
-    private int waterLevel;
-    private int[] h = new int[1048576];
- 
+-   private byte[] blocks;
+-   private int waterLevel;
+-   private int[] h = new int[1048576];
++   public int width = 256;
++   public int depth = 256;
++   public int height = 64;
++   public Random random;
++   public byte[] blocks;
++   public int waterLevel = 32;
++   private int[] h = new int[]{};
++
 +   public int getWidth()
 +   {
 +      return width;
@@ -36,7 +42,7 @@
 +   {
 +      this.height = h;
 +   }
-+
+ 
 +   public void setDepth(int d)
 +   {
 +      this.depth = d;
@@ -58,7 +64,40 @@
     }
  
 -   public final Level generate(String var1, int var2, int var3, int var4) {
-+   public Level generate(String var1, int var2, int var3, int var4) {
++   public Level generate(String var1) {
++      int var3;
        this.server.a("Generating level");
-       this.width = 256;
-       this.depth = 256;
+-      this.width = 256;
+-      this.depth = 256;
+-      this.height = 64;
+-      this.waterLevel = 32;
+       this.blocks = new byte[256 << 8 << 6];
+       this.server.b("Raising..");
+       LevelGenerator var41 = this;
+@@ -464,7 +496,7 @@
+                if((var19 = this.blocks[var2 - this.width] == 0) && !var23) {
+                   if(var22 == this.h.length) {
+                      var21.add(this.h);
+-                     this.h = new int[1048576];
++                     this.h = new int[]{};
+                      var22 = 0;
+                   }
+ 
+@@ -478,7 +510,7 @@
+                if((var19 = this.blocks[var2 + this.width] == 0) && !var24) {
+                   if(var22 == this.h.length) {
+                      var21.add(this.h);
+-                     this.h = new int[1048576];
++                     this.h = new int[]{};
+                      var22 = 0;
+                   }
+ 
+@@ -497,7 +529,7 @@
+                if((var19 = var25 == 0) && !var18) {
+                   if(var22 == this.h.length) {
+                      var21.add(this.h);
+-                     this.h = new int[1048576];
++                     this.h = new int[]{};
+                      var22 = 0;
+                   }
+ 

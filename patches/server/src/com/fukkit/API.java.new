@@ -23,13 +23,22 @@ public class API {
     private int levelHeight = 64;
     private Class<? extends LevelGenerator> levelGeneratorClass = LevelGenerator.class;
     private static Map<String, PrefixedLogger> pluginLoggers = new HashMap<>();
+    private PermissionManager permissionManager;
     public static Logger serverLogger = Logger.getLogger("MinecraftServer");
+
 
     public API(MinecraftServer server)
     {
         this.server = server;
         this.customCommands = new HashMap<>();
+        this.permissionManager = new PermissionManager();
+
     }
+
+    public PermissionManager getPermissionManager() {
+        return permissionManager;
+    }
+
 
     public void loadPlugins() {
         pluginManager.loadPlugins();
@@ -61,57 +70,38 @@ public class API {
     }
 
     static class PrefixedLogger extends Logger {
-    private final String prefix;
+        private final String prefix;
 
-    PrefixedLogger(Logger parent, String prefix) {
-        super(parent.getName() + "." + prefix.trim(), parent.getResourceBundleName());
-        this.prefix = prefix;
-        setParent(parent);
+        PrefixedLogger(Logger parent, String prefix) {
+            super(parent.getName() + "." + prefix.trim(), parent.getResourceBundleName());
+            this.prefix = prefix;
+            setParent(parent);
+        }
+
+        @Override
+        public void log(LogRecord record) {
+            LogRecord newRecord = new LogRecord(record.getLevel(), prefix + record.getMessage());
+            newRecord.setLoggerName(record.getLoggerName());
+            newRecord.setMillis(record.getMillis());
+            newRecord.setParameters(record.getParameters());
+            newRecord.setResourceBundle(record.getResourceBundle());
+            newRecord.setResourceBundleName(record.getResourceBundleName());
+            newRecord.setSequenceNumber(record.getSequenceNumber());
+            newRecord.setSourceClassName(record.getSourceClassName());
+            newRecord.setSourceMethodName(record.getSourceMethodName());
+            newRecord.setThreadID(record.getThreadID());
+            newRecord.setThrown(record.getThrown());
+            super.log(newRecord);
+        }
     }
 
-    @Override
-    public void log(LogRecord record) {
-        LogRecord newRecord = new LogRecord(record.getLevel(), prefix + record.getMessage());
-        newRecord.setLoggerName(record.getLoggerName());
-        newRecord.setMillis(record.getMillis());
-        newRecord.setParameters(record.getParameters());
-        newRecord.setResourceBundle(record.getResourceBundle());
-        newRecord.setResourceBundleName(record.getResourceBundleName());
-        newRecord.setSequenceNumber(record.getSequenceNumber());
-        newRecord.setSourceClassName(record.getSourceClassName());
-        newRecord.setSourceMethodName(record.getSourceMethodName());
-        newRecord.setThreadID(record.getThreadID());
-        newRecord.setThrown(record.getThrown());
-        super.log(newRecord);
-    }
-}
-
-    
-    public void setLevelDimensions(int width, int depth, int height) {
-        this.levelWidth = width;
-        this.levelDepth = depth;
-        this.levelHeight = height;
-    }
-
-    public int[] getLevelDimensions()
-    {
-        return new int[] {
-            levelWidth,
-            levelDepth,
-            levelHeight
-        };
-    }
-
-    public Class<? extends LevelGenerator> getLevelGeneratorClass() {
-        return this.levelGeneratorClass;
-    }
 
     public static void initialize(MinecraftServer server) {
         if (instance == null) {
             instance = new API(server);
             server.getWorldManager().initializeWorldCommand();
+            instance.permissionManager.registerPermissionCommands();
             instance.pluginManager = new PluginManager(server);
-            instance.setLevelDimensions(256, 256, 64);
             instance.loadPlugins(); // Load plugins during initialization
             instance.enablePlugins(); // Enable plugins after loading
         }
@@ -208,40 +198,55 @@ public class API {
         
         String[] parts = input.split("\\s+");
         String commandName = parts[0].toLowerCase();
-        
+
         if (customCommands.containsKey(commandName)) {
             String[] args = new String[parts.length - 1];
             System.arraycopy(parts, 1, args, 0, args.length);
-            this.getLogger("Server").info("Executing custom console command: " + commandName);
+            getLogger("Server").info("Executing custom console command: " + commandName);
             customCommands.get(commandName).accept(new ConsoleSender(), args);
         } else {
             // If it's not a custom command, pass it to the server's default command handler
-            this.getLogger("Server").info("Passing console command to default handler: " + commandName);
+            getLogger("Server").info("Passing console command to default handler: " + commandName);
             server.a(null, input);
         }
     }
     
     public void processPlayerCommand(String input, Player player) {
-        this.getLogger("Server").info("Player command received from " + player.getName() + ": " + input);
+        getLogger("Server").info("Player command received from " + player.getName() + ": " + input);
         
         String[] parts = input.split("\\s+");
         String commandName = parts[0].toLowerCase();
-        
+
         if (customCommands.containsKey(commandName)) {
             String[] args = new String[parts.length - 1];
             System.arraycopy(parts, 1, args, 0, args.length);
-            this.getLogger("Server").info("Executing custom player command from " + player.getName() + ": " + commandName);
+            getLogger("Server").info("Executing custom player command from " + player.getName() + ": " + commandName);
             customCommands.get(commandName).accept(player, args);
         } else {
-            // If it's not a custom command, pass it to the server's default command handler
-            this.getLogger("Server").info("Passing player command from " + player.getName() + " to default handler: " + commandName);
-            server.a(player.getHandle(), input);
+            if (player.isOp())
+            {
+                getLogger("Server").info("Passing player command from " + player.getName() + " to default handler: " + commandName);
+                server.a(player.getHandle(), input);
+            } else {
+                player.sendMessage("Vanilla command requires OP!");
+            }
+
         }
     }
 
 
-    public void registerCommand(String commandName, BiConsumer<CommandSender, String[]> handler) {
-        customCommands.put(commandName.toLowerCase(), handler);
+    public void registerCommand(String commandName, BiConsumer<CommandSender, String[]> handler, String permission) {
+        customCommands.put(commandName.toLowerCase(), (sender, args) -> {
+            if (permissionManager.hasPermission(sender, permission)) {
+                handler.accept(sender, args);
+            } else {
+                sender.sendMessage("You don't have permission to use this command.");
+            }
+        });
+    }
+
+    public final WorldManager getWorldManager() {
+        return getServer().getWorldManager();
     }
 
     public MinecraftServer getServer() {

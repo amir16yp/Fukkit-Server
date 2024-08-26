@@ -22,16 +22,16 @@
              }
           }
        }
-@@ -154,13 +163,21 @@
+@@ -153,14 +162,17 @@
+          }
  
           if(var1.startsWith("/")) {
-             if(this.server.playerManager1.containsPlayer(this.playerName)) {
+-            if(this.server.playerManager1.containsPlayer(this.playerName)) {
 -               this.server.a(this, var1.substring(1));
-+               API.getInstance().processPlayerCommand(var1.substring(1), new Player(this));
-+               //this.server.a(this, var1.substring(1));
-             } else {
-                this.b(PacketType.CHAT_MESSAGE, new Object[]{Integer.valueOf(-1), "You\'re not a server admin!"});
-             }
+-            } else {
+-               this.b(PacketType.CHAT_MESSAGE, new Object[]{Integer.valueOf(-1), "You\'re not a server admin!"});
+-            }
++             API.getInstance().processPlayerCommand(var1.substring(1), new Player(this));
           } else {
              logger.info(this.playerName + " says: " + var1);
 -            this.server.a(PacketType.CHAT_MESSAGE, new Object[]{Integer.valueOf(this.playerID), this.playerName + ": " + var1});
@@ -46,7 +46,7 @@
           }
        }
     }
-@@ -185,181 +202,229 @@
+@@ -185,181 +197,229 @@
     }
  
     public final void a() {
@@ -162,8 +162,8 @@
 +                      if (var8 >= var9 * var9) {
 +                          System.out.println("Distance: " + MathHelper.sqrt(var8));
 +                          this.d("Distance");
-+                      } else if (!AvailableBlockType.blocks.contains(Block.blocks[var3])) {
-+                          this.d("Tile type");
++                      //} else if (!AvailableBlockType.blocks.contains(Block.blocks[var3])) {
++                          //this.d("Tile type");
 +                      } else if (var13 >= 0 && var6 >= 0 && var5 >= 0 && var13 < var7.width && var6 < var7.depth && var5 < var7.height) {
 +                          if (var4 == 0) {
 +                              // Block removal

@@ -34,7 +34,7 @@ public class WorldManager {
         logger.info("Registered level generator: " + name);
     }
 
-    public Level createWorld(String name, long seed, int[] dimensions, String generatorName) {
+    public Level createWorld(String name, long seed, String generatorName) {
         File levelFile = new File(name + "_level.dat");
         if (levelFile.exists()) {
             logger.warning("World " + name + " already exists!");
@@ -50,7 +50,7 @@ public class WorldManager {
             generator = new LevelGenerator(server, seed);
         }
 
-        Level newLevel = generator.generate(name, dimensions[0], dimensions[1], dimensions[2]);
+        Level newLevel = generator.generate(name);
 
         newLevel.creativeMode = true;
         newLevel.growTrees = server.getProperties().getProperty("grow-trees", "false").equals("true");
@@ -146,7 +146,7 @@ public class WorldManager {
                     String worldName = args[1];
                     long seed = args.length > 2 ? Long.parseLong(args[2]) : new Random().nextLong();
                     String generator = args.length > 3 ? args[3] : "default";
-                    createWorld(worldName, seed, new int[]{128, 128, 64}, generator);
+                    createWorld(worldName, seed, generator);
                     switchWorld(worldName);
                     break;
                 case "load":
@@ -171,7 +171,7 @@ public class WorldManager {
                 default:
                     sender.sendMessage("Unknown world command. Use create, load, switch, list, or delete.");
             }
-        });
+        }, "world.mgr");
     }
 
     private void deleteWorld(CommandSender sender, String worldName) {
