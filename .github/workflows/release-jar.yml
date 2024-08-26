@@ -34,9 +34,15 @@ jobs:
 
     - name: Get release
       id: get_release
-      uses: bruceadams/get-release@v1.2.3
-      env:
-        GITHUB_TOKEN: ${{ github.token }}
+      uses: actions/github-script@v6
+      with:
+        script: |
+          const { data: release } = await github.rest.repos.getRelease({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            release_id: context.issue.release.id
+          });
+          return release.upload_url;
 
     - name: Upload Release Asset
       uses: actions/upload-release-asset@v1
