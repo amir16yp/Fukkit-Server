@@ -32,24 +32,12 @@ jobs:
     - name: Recompile server
       run: bash compile-server.sh
 
-    - name: Get release
-      id: get_release
-      uses: actions/github-script@v6
-      with:
-        script: |
-          const { data: release } = await github.rest.repos.getRelease({
-            owner: context.repo.owner,
-            repo: context.repo.repo,
-            release_id: context.issue.release.id
-          });
-          return release.upload_url;
-
     - name: Upload Release Asset
       uses: actions/upload-release-asset@v1
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
-        upload_url: ${{ steps.get_release.outputs.upload_url }}
+        upload_url: ${{ github.event.release.upload_url }}
         asset_path: ./serverout/server.jar
         asset_name: server.jar
         asset_content_type: application/java-archive
