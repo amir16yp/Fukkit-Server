@@ -1,7 +1,0 @@
-package com.fukkit;
-
-public interface CommandSender {
-    void sendMessage(String message);
-    String getName();
-    boolean isOp();
-}
