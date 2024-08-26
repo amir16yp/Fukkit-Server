@@ -1,0 +1,52 @@
+--- a/src/com/mojang/minecraft/server/ConsoleInput.java
++++ b/src/com/mojang/minecraft/server/ConsoleInput.java
+@@ -1,36 +1,34 @@
+ package com.mojang.minecraft.server;
+ 
+-import com.mojang.minecraft.server.MinecraftServer;
++import com.fukkit.API;
+ import java.io.BufferedReader;
+ import java.io.IOException;
+ import java.io.InputStreamReader;
+ 
+ final class ConsoleInput extends Thread {
+ 
+-   // $FF: synthetic field
+    private MinecraftServer server;
+ 
+-
+-   ConsoleInput(MinecraftServer var1) {
+-      this.server = var1;
++   ConsoleInput(MinecraftServer server) {
+       super();
++      this.server = server;
+    }
+ 
+    public final void run() {
+       try {
+-         BufferedReader var1 = new BufferedReader(new InputStreamReader(System.in));
+-         String var2 = null;
++         BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
++         String line = null;
+ 
+-         while((var2 = var1.readLine()) != null) {
+-            synchronized(MinecraftServer.a(this.server)) {
+-               MinecraftServer.a(this.server).add(var2);
+-            }
++         while((line = reader.readLine()) != null) {
++            final String command = line;
++            // Use the API to handle the command
++            API.getInstance().processConsoleInput(command);
+          }
+ 
+          MinecraftServer.logger.warning("stdin: end of file! No more direct console input is possible.");
+-      } catch (IOException var5) {
++      } catch (IOException e) {
+          MinecraftServer.logger.warning("stdin: ioexception! No more direct console input is possible.");
+-         var5.printStackTrace();
++         e.printStackTrace();
+       }
+    }
+-}
++}
+\ No newline at end of file

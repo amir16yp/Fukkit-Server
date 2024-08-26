@@ -1,0 +1,258 @@
+package com.fukkit.event;
+
+import com.mojang.minecraft.level.tile.Block;
+import com.fukkit.JavaPlugin;
+import com.fukkit.Location;
+import com.fukkit.Player;
+
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
+import java.lang.reflect.Method;
+import java.util.*;
+
+public class EventSystem {
+    private static final Map<Class<? extends Event>, Set<RegisteredListener>> listeners = new HashMap<>();
+
+    public static abstract class Event {
+        private final String name;
+        private boolean cancelled = false;
+
+        public Event() {
+            this.name = getClass().getSimpleName();
+        }
+
+        public String getEventName() {
+            return name;
+        }
+
+        public boolean isCancelled() {
+            return cancelled;
+        }
+
+        public void setCancelled(boolean cancel) {
+            cancelled = cancel;
+        }
+    }
+
+
+    public static class PlayerJoinEvent extends Event {
+        private final Player player;
+
+        public PlayerJoinEvent(Player player) {
+            this.player = player;
+        }
+
+        public Player getPlayer() {
+            return player;
+        }
+    }
+
+    public static class BlockPlaceEvent extends Event {
+        private final Player player;
+        private final Location location;
+        private Block block;
+        private final Block replacedBlock;
+
+        public BlockPlaceEvent(Player player, Location location, Block block, Block replacedBlock) {
+            this.player = player;
+            this.location = location;
+            this.block = block;
+            this.replacedBlock = replacedBlock;
+        }
+
+        public Player getPlayer() {
+            return player;
+        }
+
+        public Location getLocation() {
+            return location;
+        }
+
+        public Block getBlock() {
+            return block;
+        }
+
+        public Block getReplacedBlock() {
+            return replacedBlock;
+        }
+
+        public void setBlock(Block block)
+        {
+            this.block = block;
+        }
+
+        public void setBlock(int id)
+        {
+            this.setBlock(Block.fromID(id));
+        }
+    }
+
+    public static class BlockRemoveEvent extends Event {
+        private final Player player;
+        private final Location location;
+        private final Block removedBlock;
+
+        public BlockRemoveEvent(Player player, Location location, Block removedBlock) {
+            this.player = player;
+            this.location = location;
+            this.removedBlock = removedBlock;
+        }
+
+        public Player getPlayer() {
+            return player;
+        }
+
+        public Location getLocation() {
+            return location;
+        }
+
+        public Block getRemovedBlock() {
+            return removedBlock;
+        }
+    }
+
+
+    public static class PlayerQuitEvent extends Event {
+        private final Player player;
+
+        public PlayerQuitEvent(Player player) {
+            this.player = player;
+        }
+
+        public Player getPlayer() {
+            return player;
+        }
+    }
+
+    public static class PlayerChatEvent extends Event {
+        private final Player player;
+        private String message;
+
+        public PlayerChatEvent(Player player, String message) {
+            this.player = player;
+            this.message = message;
+        }
+
+        public Player getPlayer() {
+            return player;
+        }
+
+        public String getMessage() {
+            return message;
+        }
+
+        public void setMessage(String message) {
+            this.message = message;
+        }
+    }
+
+
+    public static class PlayerMoveEvent extends Event {
+        private final Player player;
+        private short newX, newY, newZ;
+        private byte newYaw, newPitch;
+        private short oldX, oldY, oldZ;
+        private byte oldYaw, oldPitch;
+        public boolean newStep;
+    
+        public PlayerMoveEvent(Player player, short oldX, short oldY, short oldZ, byte oldYaw, byte oldPitch,
+                               short newX, short newY, short newZ, byte newYaw, byte newPitch) {
+            this.player = player;
+            this.oldX = oldX; this.oldY = oldY; this.oldZ = oldZ;
+            this.oldYaw = oldYaw; this.oldPitch = oldPitch;
+            this.newX = newX; this.newY = newY; this.newZ = newZ;
+            this.newYaw = newYaw; this.newPitch = newPitch;
+        }
+    
+        public Player getPlayer() { return player; }
+        public short getNewX() { return newX; }
+        public short getNewY() { return newY; }
+        public short getNewZ() { return newZ; }
+        public byte getNewYaw() { return newYaw; }
+        public byte getNewPitch() { return newPitch; }
+        public short getOldX() { return oldX; }
+        public short getOldY() { return oldY; }
+        public short getOldZ() { return oldZ; }
+        public byte getOldYaw() { return oldYaw; }
+        public byte getOldPitch() { return oldPitch; }
+    
+        public void setNewX(short newX) { this.newX = newX; }
+        public void setNewY(short newY) { this.newY = newY; }
+        public void setNewZ(short newZ) { this.newZ = newZ; }
+        public void setNewYaw(byte newYaw) { this.newYaw = newYaw; }
+        public void setNewPitch(byte newPitch) { this.newPitch = newPitch; }
+    }
+
+    
+    // Keep your existing event classes (PlayerJoinEvent, BlockPlaceEvent, etc.) here
+
+    @Target(ElementType.METHOD)
+    @Retention(RetentionPolicy.RUNTIME)
+    public @interface EventHandler {
+        boolean ignoreCancelled() default false;
+    }
+
+    public static class RegisteredListener {
+        private final JavaPlugin plugin;
+        private final Method method;
+        private final boolean ignoreCancelled;
+
+        public RegisteredListener(JavaPlugin plugin, Method method, boolean ignoreCancelled) {
+            this.plugin = plugin;
+            this.method = method;
+            this.ignoreCancelled = ignoreCancelled;
+        }
+
+        public void execute(Event event) {
+            if (event.isCancelled() && ignoreCancelled) {
+                return;
+            }
+            try {
+                method.invoke(plugin, event);
+            } catch (Exception e) {
+                plugin.getLogger().severe("Error executing event handler in plugin " + plugin.getName() + ": " + e.getMessage());
+                e.printStackTrace();
+            }
+        }
+    }
+
+    public static void registerEvents(JavaPlugin plugin, Listener listener) {
+        for (Method method : listener.getClass().getMethods()) {
+            EventHandler annotation = method.getAnnotation(EventHandler.class);
+            if (annotation != null) {
+                Class<?>[] parameterTypes = method.getParameterTypes();
+                if (parameterTypes.length != 1 || !Event.class.isAssignableFrom(parameterTypes[0])) {
+                    plugin.getLogger().warning("Invalid event handler method signature in " + listener.getClass().getName());
+                    continue;
+                }
+
+                @SuppressWarnings("unchecked")
+                Class<? extends Event> eventClass = (Class<? extends Event>) parameterTypes[0];
+                boolean ignoreCancelled = annotation.ignoreCancelled();
+
+                RegisteredListener registeredListener = new RegisteredListener(plugin, method, ignoreCancelled);
+                getEventListeners(eventClass).add(registeredListener);
+            }
+        }
+    }
+
+    private static Set<RegisteredListener> getEventListeners(Class<? extends Event> eventClass) {
+        return listeners.computeIfAbsent(eventClass, k -> new HashSet<>());
+    }
+
+    public static void callEvent(Event event) {
+        Set<RegisteredListener> eventListeners = listeners.get(event.getClass());
+        if (eventListeners != null) {
+            for (RegisteredListener listener : eventListeners) {
+                listener.execute(event);
+                if (event.isCancelled()) {
+                    break;
+                }
+            }
+        }
+    }
+
+    public interface Listener {}
+}

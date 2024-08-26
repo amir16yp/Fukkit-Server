@@ -1,0 +1,108 @@
+package com.fukkit;
+
+import com.mojang.minecraft.net.PacketType;
+import com.mojang.minecraft.server.NetworkManager;
+
+public class Player implements CommandSender{
+    private NetworkManager handle;
+
+    public Player(NetworkManager handle) {
+        this.handle = handle;
+    }
+
+    @Override
+    public String getName() {
+        return handle.playerName;
+    }
+
+    public Location getLocation() {
+        return Location.fromRawCoordinates(handle.xSpawn, handle.ySpawn, handle.zSpawn);
+    }
+
+
+    public int getID() {
+        return handle.playerID;
+    }
+
+    public String getIPAddress() {
+        return handle.networkHandler.address;
+    }
+
+    @Override
+    public void sendMessage(String message) {
+        handle.b(PacketType.CHAT_MESSAGE, new Object[]{Integer.valueOf(-1), message});
+    }
+
+    public void kick(String reason) {
+        handle.a(reason);
+    }
+
+    public void ban() {
+        API.getInstance().banPlayer(getName());
+    }
+
+    public void op() {
+        API.getInstance().opPlayer(getName());
+    }
+
+    public void deop() {
+        API.getInstance().deopPlayer(getName());
+    }
+
+    @Override
+    public boolean isOp() {
+        return API.getInstance().isPlayerOp(getName());
+    }
+
+    public boolean isBanned() {
+        return API.getInstance().isPlayerBanned(getName());
+    }
+
+    public boolean isOnline()
+    {
+        return Utils.contains(API.getInstance().getServer().networkManager, this);
+    }
+
+    public void teleport(int x, int y, int z) {
+        handle.networkHandler.send(PacketType.POSITION_ROTATION, new Object[]{
+            Integer.valueOf(-1), 
+            Integer.valueOf(x), 
+            Integer.valueOf(y), 
+            Integer.valueOf(z), 
+            Integer.valueOf(handle.yawSpawn), 
+            Integer.valueOf(handle.pitchSpawn)
+        });
+    }
+
+    public void teleport(Player target) {
+        teleport(target.getLocation());
+    }
+
+    public void teleport(Location location) {
+        teleport(location.getX() << 5, location.getY() << 5, location.getZ() << 5);
+    }
+
+    public int getX() {
+        return handle.xSpawn;
+    }
+
+    public int getY() {
+        return handle.ySpawn;
+    }
+
+    public int getZ() {
+        return handle.zSpawn;
+    }
+
+    public int getYaw() {
+        return handle.yawSpawn;
+    }
+
+    public int getPitch() {
+        return handle.pitchSpawn;
+    }
+
+    public NetworkManager getHandle() {
+        return handle;
+    }
+}

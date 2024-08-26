@@ -1,0 +1,23 @@
+--- a/src/com/mojang/minecraft/level/tile/Block.java
++++ b/src/com/mojang/minecraft/level/tile/Block.java
+@@ -86,7 +86,7 @@
+    public static final Block OBSIDIAN;
+    public final int id;
+    public Tile$SoundType stepsound;
+-   private boolean explodes;
++   public boolean explodes;
+    private float x1;
+    private float y1;
+    private float z1;
+@@ -105,6 +105,11 @@
+       liquid[var1] = false;
+    }
+ 
++   public static Block fromID(int id)
++   {
++      return blocks[id];
++   }
++
+    public boolean isCube() {
+       return true;
+    }

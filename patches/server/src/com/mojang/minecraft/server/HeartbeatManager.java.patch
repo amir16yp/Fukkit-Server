@@ -1,0 +1,13 @@
+--- a/src/com/mojang/minecraft/server/HeartbeatManager.java
++++ b/src/com/mojang/minecraft/server/HeartbeatManager.java
+@@ -18,9 +18,9 @@
+ 
+ 
+    HeartbeatManager(MinecraftServer var1, String var2) {
++      super();
+       this.server = var1;
+       this.name = var2;
+-      super();
+    }
+ 
+    public final void run() {

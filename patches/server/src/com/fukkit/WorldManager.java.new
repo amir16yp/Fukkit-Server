@@ -1,0 +1,251 @@
+package com.fukkit;
+
+import com.mojang.minecraft.level.Level;
+import com.mojang.minecraft.level.LevelIO;
+import com.mojang.minecraft.level.generator.LevelGenerator;
+import com.mojang.minecraft.server.MinecraftServer;
+
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.util.*;
+import java.util.logging.Logger;
+
+public class WorldManager {
+    private final MinecraftServer server;
+    private Level activeWorld;
+    private String activeWorldName;
+    private final Logger logger;
+    private final Map<String, Class<? extends LevelGenerator>> registeredGenerators;
+
+    public WorldManager(MinecraftServer server) {
+        this.server = server;
+        this.logger = API.getLogger("WorldManager");
+        this.registeredGenerators = new HashMap<>();
+        this.registerDefaultGenerator();
+    }
+
+    private void registerDefaultGenerator() {
+        registeredGenerators.put("default", LevelGenerator.class);
+    }
+
+    public void registerLevelGenerator(String name, Class<? extends LevelGenerator> generatorClass) {
+        registeredGenerators.put(name, generatorClass);
+        logger.info("Registered level generator: " + name);
+    }
+
+    public Level createWorld(String name, long seed, String generatorName) {
+        File levelFile = new File(name + "_level.dat");
+        if (levelFile.exists()) {
+            logger.warning("World " + name + " already exists!");
+            return loadWorld(name);
+        }
+
+        Class<? extends LevelGenerator> generatorClass = registeredGenerators.getOrDefault(generatorName, LevelGenerator.class);
+        LevelGenerator generator;
+        try {
+            generator = generatorClass.getConstructor(MinecraftServer.class, long.class).newInstance(server, seed);
+        } catch (Exception e) {
+            logger.warning("Failed to instantiate LevelGenerator " + generatorName + ". Using default.");
+            generator = new LevelGenerator(server, seed);
+        }
+
+        Level newLevel = generator.generate(name);
+
+        newLevel.creativeMode = true;
+        newLevel.growTrees = server.getProperties().getProperty("grow-trees", "false").equals("true");
+        newLevel.addListener$74652038(server);
+
+        saveWorld(name, newLevel);
+
+        logger.info("Created new world: " + name + " using generator: " + generatorName);
+        return newLevel;
+    }
+
+    public Level loadWorld(String name) {
+        if (activeWorldName != null && activeWorldName.equals(name)) {
+            logger.info("World " + name + " is already loaded.");
+            return activeWorld;
+        }
+
+        File levelFile = new File(name + "_level.dat");
+        if (!levelFile.exists()) {
+            logger.warning("World file for " + name + " does not exist.");
+            return null;
+        }
+
+        try {
+            Level level = new LevelIO(server).load(new FileInputStream(levelFile));
+            setActiveWorld(name, level);
+            logger.info("Loaded world: " + name);
+            return level;
+        } catch (Exception e) {
+            logger.severe("Failed to load world " + name + ": " + e.getMessage());
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+    public void unloadWorld(boolean save) {
+        if (activeWorld == null) {
+            logger.warning("No world is currently loaded.");
+            return;
+        }
+
+        if (save) {
+            saveWorld(activeWorldName, activeWorld);
+        }
+
+        activeWorld = null;
+        activeWorldName = null;
+        logger.info("Unloaded world: " + activeWorldName);
+    }
+
+    public void saveWorld(String name, Level level) {
+        try {
+            new LevelIO(server).save(level, new FileOutputStream(name + "_level.dat"));
+            logger.info("Saved world: " + name);
+        } catch (Exception e) {
+            logger.severe("Failed to save world " + name + ": " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    public Level getActiveWorld() {
+        return activeWorld;
+    }
+
+    public String getActiveWorldName() {
+        return activeWorldName;
+    }
+
+    private void setActiveWorld(String name, Level level) {
+        if (activeWorld != null) {
+            unloadWorld(true);
+        }
+        activeWorld = level;
+        activeWorldName = name;
+    }
+
+
+    public void initializeWorldCommand() {
+        API.getInstance().registerCommand("world", (sender, args) -> {
+            if (args.length < 1) {
+                sender.sendMessage("Usage: /world <create|load|switch|list|delete> [worldname] [seed] [generator]");
+                return;
+            }
+
+            String action = args[0].toLowerCase();
+
+            switch (action) {
+                case "create":
+                    if (args.length < 2) {
+                        sender.sendMessage("Usage: /world create <worldname> [seed] [generator]");
+                        return;
+                    }
+                    String worldName = args[1];
+                    long seed = args.length > 2 ? Long.parseLong(args[2]) : new Random().nextLong();
+                    String generator = args.length > 3 ? args[3] : "default";
+                    createWorld(worldName, seed, generator);
+                    switchWorld(worldName);
+                    break;
+                case "load":
+                case "switch":
+                    if (args.length < 2) {
+                        sender.sendMessage("Usage: /world " + action + " <worldname>");
+                        return;
+                    }
+                    switchWorld(args[1]);
+                    break;
+                case "list":
+                    listWorlds(sender);
+                    listGenerators(sender);
+                    break;
+                case "delete":
+                    if (args.length < 2) {
+                        sender.sendMessage("Usage: /world delete <worldname>");
+                        return;
+                    }
+                    deleteWorld(sender, args[1]);
+                    break;
+                default:
+                    sender.sendMessage("Unknown world command. Use create, load, switch, list, or delete.");
+            }
+        }, "world.mgr");
+    }
+
+    private void deleteWorld(CommandSender sender, String worldName) {
+        if (worldName.equals(activeWorldName)) {
+            sender.sendMessage("Cannot delete the active world. Switch to another world first.");
+            return;
+        }
+
+        File levelFile = new File(worldName + "_level.dat");
+        if (!levelFile.exists()) {
+            sender.sendMessage("World '" + worldName + "' does not exist.");
+            return;
+        }
+
+        if (levelFile.delete()) {
+            sender.sendMessage("World '" + worldName + "' has been deleted.");
+            logger.info("Deleted world: " + worldName);
+        } else {
+            sender.sendMessage("Failed to delete world '" + worldName + "'. Check server logs for details.");
+            logger.severe("Failed to delete world file: " + levelFile.getAbsolutePath());
+        }
+    }
+
+    private void listWorlds(CommandSender sender) {
+        File serverDir = new File(".");
+        File[] files = serverDir.listFiles((dir, name) -> name.endsWith("_level.dat"));
+
+        if (files == null || files.length == 0) {
+            sender.sendMessage("No worlds found.");
+            return;
+        }
+
+        List<String> worldNames = new ArrayList<>();
+        for (File file : files) {
+            String worldName = file.getName().replace("_level.dat", "");
+            worldNames.add(worldName);
+        }
+
+        sender.sendMessage("Available worlds:");
+        for (String worldName : worldNames) {
+            sender.sendMessage("- " + worldName + (worldName.equals(activeWorldName) ? " (active)" : ""));
+        }
+    }
+
+    public void listGenerators(CommandSender sender) {
+        sender.sendMessage("Available level generators:");
+        for (String generatorName : registeredGenerators.keySet()) {
+            sender.sendMessage("- " + generatorName);
+        }
+    }
+
+
+    private void switchWorld(String worldName) {
+        API.getInstance().sendGlobalMessage("Switching to world: " + worldName);
+
+        // Load the world
+        Level world = server.getWorldManager().loadWorld(worldName);
+
+        if (world != null) {
+            // Set the main level to the new world
+
+            // Teleport all players to the new world's spawn point
+            for (Player player : API.getInstance().getOnlinePlayers()) {
+                player.teleport(world.xSpawn, world.ySpawn, world.zSpawn);
+                player.kick("Server is changing worlds");
+            }
+            server.mainLevel = world;
+
+            API.getInstance().sendGlobalMessage("Switched to world: " + worldName);
+        } else {
+            API.getInstance().sendGlobalMessage("Failed to load world: " + worldName);
+        }
+    }
+
+
+
+}

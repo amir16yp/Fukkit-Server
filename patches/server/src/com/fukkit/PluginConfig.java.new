@@ -1,0 +1,111 @@
+package com.fukkit;
+
+import java.io.*;
+import java.util.Properties;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
+public class PluginConfig {
+    private final File configFile;
+    private final Properties properties;
+    private final Logger logger;
+    private boolean isLoaded;
+
+    public PluginConfig(File dataFolder, String fileName, Logger logger) {
+        this.configFile = new File(dataFolder, fileName);
+        this.properties = new Properties();
+        this.logger = logger;
+        this.isLoaded = false;
+    }
+
+    public void load() {
+        try (FileInputStream fis = new FileInputStream(configFile)) {
+            properties.load(fis);
+            isLoaded = true;
+        } catch (IOException e) {
+            logger.log(Level.WARNING, "Could not load config file", e);
+        }
+    }
+
+    public void save() {
+        try (FileOutputStream fos = new FileOutputStream(configFile)) {
+            properties.store(fos, "Plugin configuration");
+        } catch (IOException e) {
+            logger.log(Level.WARNING, "Could not save config file", e);
+        }
+    }
+
+    public String getString(String key, String defaultValue) {
+        return properties.getProperty(key, defaultValue);
+    }
+
+    public int getInt(String key, int defaultValue) {
+        String value = properties.getProperty(key);
+        if (value != null) {
+            try {
+                return Integer.parseInt(value);
+            } catch (NumberFormatException e) {
+                logger.warning("Invalid integer value for key: " + key);
+            }
+        }
+        return defaultValue;
+    }
+
+    public boolean getBoolean(String key, boolean defaultValue) {
+        String value = properties.getProperty(key);
+        if (value != null) {
+            return Boolean.parseBoolean(value);
+        }
+        return defaultValue;
+    }
+
+    public double getDouble(String key, double defaultValue) {
+        String value = properties.getProperty(key);
+        if (value != null) {
+            try {
+                return Double.parseDouble(value);
+            } catch (NumberFormatException e) {
+                logger.warning("Invalid double value for key: " + key);
+            }
+        }
+        return defaultValue;
+    }
+
+    public void setString(String key, String value) {
+        properties.setProperty(key, value);
+    }
+
+    public void setInt(String key, int value) {
+        properties.setProperty(key, String.valueOf(value));
+    }
+
+    public void setBoolean(String key, boolean value) {
+        properties.setProperty(key, String.valueOf(value));
+    }
+
+    public void setDouble(String key, double value) {
+        properties.setProperty(key, String.valueOf(value));
+    }
+
+    public boolean isLoaded() {
+        return isLoaded;
+    }
+
+    public void setProperties(Properties newProperties) {
+        properties.clear();
+        properties.putAll(newProperties);
+        isLoaded = true;
+    }
+
+    public boolean contains(String key) {
+        return properties.containsKey(key);
+    }
+
+    public void remove(String key) {
+        properties.remove(key);
+    }
+
+    public void clear() {
+        properties.clear();
+    }
+}

@@ -1,0 +1,163 @@
+--- a/src/com/mojang/minecraft/level/generator/LevelGenerator.java
++++ b/src/com/mojang/minecraft/level/generator/LevelGenerator.java
+@@ -9,28 +9,60 @@
+ import java.util.ArrayList;
+ import java.util.Random;
+ 
+-public final class LevelGenerator {
++public class LevelGenerator {
+ 
+    private MinecraftServer server;
+-   private int width;
+-   private int depth;
+-   private int height;
+-   private Random random = new Random();
+-   private byte[] blocks;
+-   private int waterLevel;
+-   private int[] h = new int[1048576];
++   public int width = 256;
++   public int depth = 256;
++   public int height = 64;
++   public Random random;
++   public byte[] blocks;
++   public int waterLevel = 32;
++   private ArrayList<Integer> h = new ArrayList<>();
++
++   public int getWidth()
++   {
++      return width;
++   }
++
++   public int getDepth()
++   {
++      return depth;
++   }
++
++   public int getHeight()
++   {
++      return height;
++   }
+ 
++   public void setHeight(int h)
++   {
++      this.height = h;
++   }
++
++   public void setDepth(int d)
++   {
++      this.depth = d;
++   }
++
++   public void setWidth(int w)
++   {
++      this.width = w;
++   }
++
++   public LevelGenerator(MinecraftServer var1, long seed) {
++      this.server = var1;
++      this.random = new Random(seed);
++   }
+ 
+    public LevelGenerator(MinecraftServer var1) {
+       this.server = var1;
++      this.random = new Random();
+    }
+ 
+-   public final Level generate(String var1, int var2, int var3, int var4) {
++   public Level generate(String var1) {
++      int var3;
+       this.server.a("Generating level");
+-      this.width = 256;
+-      this.depth = 256;
+-      this.height = 64;
+-      this.waterLevel = 32;
+       this.blocks = new byte[256 << 8 << 6];
+       this.server.b("Raising..");
+       LevelGenerator var41 = this;
+@@ -405,8 +437,8 @@
+ 
+    private long flood(int var1, int var2, int var3, int var4, int var5) {
+       byte var20 = (byte)var5;
+-      ArrayList var21 = new ArrayList();
+-      byte var6 = 0;
++      ArrayList<ArrayList<Integer>> var21 = new ArrayList<>();
++      int var6 = 0;
+       int var7 = 1;
+ 
+       int var8;
+@@ -421,16 +453,16 @@
+       int var9 = this.depth - 1;
+       int var10 = this.width - 1;
+       int var22 = var6 + 1;
+-      this.h[0] = ((var2 << var8) + var3 << var7) + var1;
++      this.h.add(((var2 << var8) + var3 << var7) + var1);
+       long var11 = 0L;
+       var1 = this.width * this.depth;
+ 
+       while(var22 > 0) {
+          --var22;
+-         var2 = this.h[var22];
++         var2 = this.h.remove(this.h.size() - 1);
+          if(var22 == 0 && var21.size() > 0) {
+-            this.h = (int[])var21.remove(var21.size() - 1);
+-            var22 = this.h.length;
++            this.h = var21.remove(var21.size() - 1);
++            var22 = this.h.size();
+          }
+ 
+          var3 = var2 >> var7 & var9;
+@@ -462,13 +494,8 @@
+             boolean var19;
+             if(var3 > 0) {
+                if((var19 = this.blocks[var2 - this.width] == 0) && !var23) {
+-                  if(var22 == this.h.length) {
+-                     var21.add(this.h);
+-                     this.h = new int[1048576];
+-                     var22 = 0;
+-                  }
+-
+-                  this.h[var22++] = var2 - this.width;
++                  this.h.add(var2 - this.width);
++                  var22++;
+                }
+ 
+                var23 = var19;
+@@ -476,13 +503,8 @@
+ 
+             if(var3 < this.depth - 1) {
+                if((var19 = this.blocks[var2 + this.width] == 0) && !var24) {
+-                  if(var22 == this.h.length) {
+-                     var21.add(this.h);
+-                     this.h = new int[1048576];
+-                     var22 = 0;
+-                  }
+-
+-                  this.h[var22++] = var2 + this.width;
++                  this.h.add(var2 + this.width);
++                  var22++;
+                }
+ 
+                var24 = var19;
+@@ -495,13 +517,8 @@
+                }
+ 
+                if((var19 = var25 == 0) && !var18) {
+-                  if(var22 == this.h.length) {
+-                     var21.add(this.h);
+-                     this.h = new int[1048576];
+-                     var22 = 0;
+-                  }
+-
+-                  this.h[var22++] = var2 - var1;
++                  this.h.add(var2 - var1);
++                  var22++;
+                }
+ 
+                var18 = var19;
+@@ -513,4 +530,4 @@
+ 
+       return var11;
+    }
+-}
++}
+\ No newline at end of file

@@ -1,0 +1,25 @@
+--- a/src/com/mojang/net/NetworkHandler.java
++++ b/src/com/mojang/net/NetworkHandler.java
+@@ -2,7 +2,10 @@
+ 
+ import com.mojang.minecraft.net.PacketType;
+ import com.mojang.minecraft.server.NetworkManager;
++
++import java.io.IOException;
+ import java.net.Socket;
++import java.net.SocketException;
+ import java.nio.ByteBuffer;
+ import java.nio.channels.SocketChannel;
+ import java.util.Arrays;
+@@ -18,9 +21,9 @@
+    private boolean h = false;
+    public String address;
+    private byte[] stringBytes = new byte[64];
++   
+ 
+-
+-   public NetworkHandler(SocketChannel var1) {
++   public NetworkHandler(SocketChannel var1) throws SocketException, IOException{
+       this.channel = var1;
+       this.channel.configureBlocking(false);
+       System.currentTimeMillis();

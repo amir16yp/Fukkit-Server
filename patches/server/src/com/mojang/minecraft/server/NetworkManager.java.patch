@@ -1,0 +1,442 @@
+--- a/src/com/mojang/minecraft/server/NetworkManager.java
++++ b/src/com/mojang/minecraft/server/NetworkManager.java
+@@ -1,5 +1,11 @@
+ package com.mojang.minecraft.server;
+ 
++import com.fukkit.API;
++import com.fukkit.Location;
++import com.fukkit.Player;
++import com.fukkit.event.EventSystem;
++import com.fukkit.event.EventSystem.BlockPlaceEvent;
++import com.fukkit.event.EventSystem.BlockRemoveEvent;
+ import com.mojang.minecraft.AvailableBlockType;
+ import com.mojang.minecraft.level.Level;
+ import com.mojang.minecraft.level.tile.Block;
+@@ -130,6 +136,9 @@
+                byte[] var10 = var9.copyBlocks();
+                (new LevelSaver(this, var10)).start();
+                this.server.playerManager4.addPlayer(var3);
++
++               EventSystem.PlayerJoinEvent joinEvent = new EventSystem.PlayerJoinEvent(new Player(this));
++               EventSystem.callEvent(joinEvent);
+             }
+          }
+       }
+@@ -153,14 +162,17 @@
+          }
+ 
+          if(var1.startsWith("/")) {
+-            if(this.server.playerManager1.containsPlayer(this.playerName)) {
+-               this.server.a(this, var1.substring(1));
+-            } else {
+-               this.b(PacketType.CHAT_MESSAGE, new Object[]{Integer.valueOf(-1), "You\'re not a server admin!"});
+-            }
++             API.getInstance().processPlayerCommand(var1.substring(1), new Player(this));
+          } else {
+             logger.info(this.playerName + " says: " + var1);
+-            this.server.a(PacketType.CHAT_MESSAGE, new Object[]{Integer.valueOf(this.playerID), this.playerName + ": " + var1});
++
++            EventSystem.PlayerChatEvent chatEvent = new EventSystem.PlayerChatEvent(new Player(this), var1);
++            EventSystem.callEvent(chatEvent);
++
++            if (!chatEvent.isCancelled())
++            {
++               this.server.a(PacketType.CHAT_MESSAGE, new Object[]{Integer.valueOf(this.playerID), this.playerName + ": " + chatEvent.getMessage()});
++            }
+          }
+       }
+    }
+@@ -185,181 +197,229 @@
+    }
+ 
+    public final void a() {
+-      if(this.clicks >= 2) {
+-         this.clicks -= 2;
++      if (this.clicks >= 2) {
++          this.clicks -= 2;
+       }
+-
+-      if(this.timeTillTalk > 0) {
+-         --this.timeTillTalk;
+-         if(this.timeTillTalk == 600) {
+-            this.b(PacketType.CHAT_MESSAGE, new Object[]{Integer.valueOf(-1), "You can now talk again."});
+-            this.timeTillTalk = 300;
+-         }
++  
++      if (this.timeTillTalk > 0) {
++          --this.timeTillTalk;
++          if (this.timeTillTalk == 600) {
++              this.b(PacketType.CHAT_MESSAGE, new Object[]{Integer.valueOf(-1), "You can now talk again."});
++              this.timeTillTalk = 300;
++          }
+       }
+-
++  
+       Object[] var2;
+       boolean var10000;
+-      if(this.p.size() > 0) {
+-         for(boolean var1 = true; this.p.size() > 0 && var1; var1 = var10000) {
+-            byte var3;
+-            byte var4;
+-            short var5;
+-            short var6;
+-            short var13;
+-            short var10001;
+-            short var10002;
+-            short var10003;
+-            byte var10004;
+-            if((var2 = (Object[])this.p.remove(0))[0] instanceof Short) {
+-               var10001 = ((Short)var2[0]).shortValue();
+-               var10002 = ((Short)var2[1]).shortValue();
+-               var10003 = ((Short)var2[2]).shortValue();
+-               var10004 = ((Byte)var2[3]).byteValue();
+-               var3 = ((Byte)var2[4]).byteValue();
+-               var4 = var10004;
+-               var5 = var10003;
+-               var6 = var10002;
+-               var13 = var10001;
+-               ++this.clicks;
+-               if(this.clicks == 100) {
+-                  this.d("Too much clicking!");
+-               } else {
+-                  Level var7 = this.server.mainLevel;
+-                  float var8 = (float)var13 - (float)this.xSpawn / 32.0F;
+-                  float var9 = (float)var6 - ((float)this.ySpawn / 32.0F - 1.62F);
+-                  float var10 = (float)var5 - (float)this.zSpawn / 32.0F;
+-                  var8 = var8 * var8 + var9 * var9 + var10 * var10;
+-                  var9 = 8.0F;
+-                  if(var8 >= var9 * var9) {
+-                     System.out.println("Distance: " + MathHelper.sqrt(var8));
+-                     this.d("Distance");
+-                  } else if(!AvailableBlockType.blocks.contains(Block.blocks[var3])) {
+-                     this.d("Tile type");
+-                  } else if(var13 >= 0 && var6 >= 0 && var5 >= 0 && var13 < var7.width && var6 < var7.depth && var5 < var7.height) {
+-                     if(var4 == 0) {
+-                        if(var7.getTile(var13, var6, var5) != Block.BEDROCK.id || this.server.playerManager1.containsPlayer(this.playerName)) {
+-                           var7.setTile(var13, var6, var5, 0);
+-                        }
+-                     } else {
+-                        Block var16;
+-                        if((var16 = Block.blocks[var7.getTile(var13, var6, var5)]) == null || var16 == Block.WATER || var16 == Block.STATIONARY_WATER || var16 == Block.LAVA || var16 == Block.STATIONARY_LAVA) {
+-                           if(this.i && var3 == Block.STONE.id) {
+-                              var7.setTile(var13, var6, var5, Block.BEDROCK.id);
+-                           } else {
+-                              var7.setTile(var13, var6, var5, var3);
+-                           }
+-
+-                           Block.blocks[var3].onPlace(var7, var13, var6, var5);
+-                        }
+-                     }
++      if (this.p.size() > 0) {
++          for (boolean var1 = true; this.p.size() > 0 && var1; var1 = var10000) {
++              byte var3;
++              byte var4;
++              short var5;
++              short var6;
++              short var13;
++              short var10001;
++              short var10002;
++              short var10003;
++              byte var10004;
++              if ((var2 = (Object[])this.p.remove(0))[0] instanceof Short) {
++                  var10001 = ((Short)var2[0]).shortValue();
++                  var10002 = ((Short)var2[1]).shortValue();
++                  var10003 = ((Short)var2[2]).shortValue();
++                  var10004 = ((Byte)var2[3]).byteValue();
++                  var3 = ((Byte)var2[4]).byteValue();
++                  var4 = var10004;
++                  var5 = var10003;
++                  var6 = var10002;
++                  var13 = var10001;
++                  ++this.clicks;
++                  if (this.clicks == 100) {
++                      this.d("Too much clicking!");
++                  } else {
++                      Level var7 = this.server.mainLevel;
++                      float var8 = (float)var13 - (float)this.xSpawn / 32.0F;
++                      float var9 = (float)var6 - ((float)this.ySpawn / 32.0F - 1.62F);
++                      float var10 = (float)var5 - (float)this.zSpawn / 32.0F;
++                      var8 = var8 * var8 + var9 * var9 + var10 * var10;
++                      var9 = 8.0F;
++                      Player player = new Player(this);
++                      if (var8 >= var9 * var9) {
++                          System.out.println("Distance: " + MathHelper.sqrt(var8));
++                          this.d("Distance");
++                      //} else if (!AvailableBlockType.blocks.contains(Block.blocks[var3])) {
++                          //this.d("Tile type");
++                      } else if (var13 >= 0 && var6 >= 0 && var5 >= 0 && var13 < var7.width && var6 < var7.depth && var5 < var7.height) {
++                          if (var4 == 0) {
++                              // Block removal
++                              BlockRemoveEvent event = new BlockRemoveEvent(player, Location.fromTileCoordinates(var13, var6, var5), Block.fromID(var7.getTile(var13, var6, var5)));
++                              EventSystem.callEvent(event);
++                              if (!event.isCancelled())
++                              {
++                                 if (var7.getTile(var13, var6, var5) != Block.BEDROCK.id || this.server.playerManager1.containsPlayer(this.playerName)) {
++                                    var7.setTile(var13, var6, var5, 0);
++                                 }
++                              }
++
++                           } else {  // Block placement
++                              Location placeLocation = Location.fromTileCoordinates(var13, var6, var5);
++                              Block existingBlock = Block.blocks[var7.getTile(var13, var6, var5)];
++                              Block newBlock = Block.blocks[var3];
++                          
++                              // Check if the block can be placed
++                              if (existingBlock == null || existingBlock == Block.WATER || existingBlock == Block.STATIONARY_WATER 
++                                  || existingBlock == Block.LAVA || existingBlock == Block.STATIONARY_LAVA) {
++                                  
++                                  // Create and call the BlockPlaceEvent
++                                  BlockPlaceEvent placeEvent = new BlockPlaceEvent(new Player(this), placeLocation, newBlock, existingBlock);
++                                  EventSystem.callEvent(placeEvent);
++                          
++                                  // Check if the event was cancelled
++                                  if (!placeEvent.isCancelled()) {
++                                      // Special case for admins placing bedrock
++                                      newBlock = placeEvent.getBlock();
++                                      if (this.i && var3 == Block.STONE.id) {
++                                          var7.setTile(var13, var6, var5, Block.BEDROCK.id);
++                                          newBlock = Block.BEDROCK;
++                                      } else {
++                                          var7.setTile(var13, var6, var5, newBlock.id);
++                                      }
++                          
++                                      // Call onPlace method of the placed block
++                                      newBlock.onPlace(var7, var13, var6, var5);
++                          
++                                      // You might want to notify nearby clients about the block change
++                                      this.server.a(var13, var6, var5);
++                                  }
++                              }
++                          }
++                      }
+                   }
+-               }
+-
+-               var10000 = true;
+-            } else {
+-               ((Byte)var2[0]).byteValue();
+-               var10001 = ((Short)var2[1]).shortValue();
+-               var10002 = ((Short)var2[2]).shortValue();
+-               var10003 = ((Short)var2[3]).shortValue();
+-               var10004 = ((Byte)var2[4]).byteValue();
+-               var3 = ((Byte)var2[5]).byteValue();
+-               var4 = var10004;
+-               var5 = var10003;
+-               var6 = var10002;
+-               var13 = var10001;
+-               if(var13 == this.xSpawn && var6 == this.ySpawn && var5 == this.zSpawn && var4 == this.yawSpawn && var3 == this.pitchSpawn) {
+                   var10000 = true;
+-               } else {
+-                  boolean var21 = var13 == this.xSpawn && var6 == this.ySpawn && var5 == this.zSpawn;
+-                  if(this.t++ % 2 == 0) {
+-                     int var22 = var13 - this.xSpawn;
+-                     int var23 = var6 - this.ySpawn;
+-                     int var24 = var5 - this.zSpawn;
+-                     if(var22 >= 128 || var22 < -128 || var23 >= 128 || var23 < -128 || var24 >= 128 || var24 < -128 || this.t % 20 <= 1) {
+-                        this.xSpawn = var13;
+-                        this.ySpawn = var6;
+-                        this.zSpawn = var5;
+-                        this.yawSpawn = var4;
+-                        this.pitchSpawn = var3;
+-                        this.server.a(this, PacketType.POSITION_ROTATION, new Object[]{Integer.valueOf(this.playerID), Short.valueOf(var13), Short.valueOf(var6), Short.valueOf(var5), Byte.valueOf(var4), Byte.valueOf(var3)});
+-                        var10000 = false;
+-                        continue;
++              } else {
++                  ((Byte)var2[0]).byteValue();
++                  var10001 = ((Short)var2[1]).shortValue();
++                  var10002 = ((Short)var2[2]).shortValue();
++                  var10003 = ((Short)var2[3]).shortValue();
++                  var10004 = ((Byte)var2[4]).byteValue();
++                  var3 = ((Byte)var2[5]).byteValue();
++                  var4 = var10004;
++                  var5 = var10003;
++                  var6 = var10002;
++                  var13 = var10001;
++                  
++                  if (var13 != this.xSpawn || var6 != this.ySpawn || var5 != this.zSpawn || var4 != this.yawSpawn || var3 != this.pitchSpawn) {
++                     // Fire PlayerMoveEvent
++                     EventSystem.PlayerMoveEvent moveEvent = new EventSystem.PlayerMoveEvent(
++                         new Player(this),
++                         (short)this.xSpawn, (short)this.ySpawn, (short)this.zSpawn, (byte)this.yawSpawn, (byte)this.pitchSpawn,
++                         var13, var6, var5, var4, var3
++                     );
++                     if ((int) var13 != (int) this.xSpawn || (int) var6 != (int) this.ySpawn || (int) var5 != (int) this.zSpawn) {
++                        moveEvent.newStep = true;
+                      }
+-
+-                     if(var13 == this.xSpawn && var6 == this.ySpawn && var5 == this.zSpawn) {
+-                        this.yawSpawn = var4;
+-                        this.pitchSpawn = var3;
+-                        this.server.a(this, PacketType.ROTATION_UPDATE, new Object[]{Integer.valueOf(this.playerID), Byte.valueOf(var4), Byte.valueOf(var3)});
+-                     } else if(var4 == this.yawSpawn && var3 == this.pitchSpawn) {
+-                        this.xSpawn = var13;
+-                        this.ySpawn = var6;
+-                        this.zSpawn = var5;
+-                        this.server.a(this, PacketType.POSITION_UPDATE, new Object[]{Integer.valueOf(this.playerID), Integer.valueOf(var22), Integer.valueOf(var23), Integer.valueOf(var24)});
++                     EventSystem.callEvent(moveEvent);
++               
++                     // Check if the event was cancelled or the position was modified
++                     if (!moveEvent.isCancelled()) {
++                         var13 = moveEvent.getNewX();
++                         var6 = moveEvent.getNewY();
++                         var5 = moveEvent.getNewZ();
++                         var4 = moveEvent.getNewYaw();
++                         var3 = moveEvent.getNewPitch();
++                 
++                         boolean var21 = var13 == this.xSpawn && var6 == this.ySpawn && var5 == this.zSpawn;
++                         if (this.t++ % 2 == 0) {
++                             int var22 = var13 - this.xSpawn;
++                             int var23 = var6 - this.ySpawn;
++                             int var24 = var5 - this.zSpawn;
++                             if (var22 >= 128 || var22 < -128 || var23 >= 128 || var23 < -128 || var24 >= 128 || var24 < -128 || this.t % 20 <= 1) {
++                                 this.xSpawn = var13;
++                                 this.ySpawn = var6;
++                                 this.zSpawn = var5;
++                                 this.yawSpawn = var4;
++                                 this.pitchSpawn = var3;
++                                 this.server.a(this, PacketType.POSITION_ROTATION, new Object[]{Integer.valueOf(this.playerID), Short.valueOf(var13), Short.valueOf(var6), Short.valueOf(var5), Byte.valueOf(var4), Byte.valueOf(var3)});
++                                 var10000 = false;
++                                 continue;
++                             }
++                 
++                             if (var13 == this.xSpawn && var6 == this.ySpawn && var5 == this.zSpawn) {
++                                 this.yawSpawn = var4;
++                                 this.pitchSpawn = var3;
++                                 this.server.a(this, PacketType.ROTATION_UPDATE, new Object[]{Integer.valueOf(this.playerID), Byte.valueOf(var4), Byte.valueOf(var3)});
++                             } else if (var4 == this.yawSpawn && var3 == this.pitchSpawn) {
++                                 this.xSpawn = var13;
++                                 this.ySpawn = var6;
++                                 this.zSpawn = var5;
++                                 this.server.a(this, PacketType.POSITION_UPDATE, new Object[]{Integer.valueOf(this.playerID), Integer.valueOf(var22), Integer.valueOf(var23), Integer.valueOf(var24)});
++                             } else {
++                                 this.xSpawn = var13;
++                                 this.ySpawn = var6;
++                                 this.zSpawn = var5;
++                                 this.yawSpawn = var4;
++                                 this.pitchSpawn = var3;
++                                 this.server.a(this, PacketType.POSITION_ROTATION_UPDATE, new Object[]{Integer.valueOf(this.playerID), Integer.valueOf(var22), Integer.valueOf(var23), Integer.valueOf(var24), Byte.valueOf(var4), Byte.valueOf(var3)});
++                             }
++                         }
++                         var10000 = var21;
+                      } else {
+-                        this.xSpawn = var13;
+-                        this.ySpawn = var6;
+-                        this.zSpawn = var5;
+-                        this.yawSpawn = var4;
+-                        this.pitchSpawn = var3;
+-                        this.server.a(this, PacketType.POSITION_ROTATION_UPDATE, new Object[]{Integer.valueOf(this.playerID), Integer.valueOf(var22), Integer.valueOf(var23), Integer.valueOf(var24), Byte.valueOf(var4), Byte.valueOf(var3)});
++                         var10000 = true;
+                      }
+-                  }
+-
+-                  var10000 = var21;
+-               }
+-            }
+-         }
++                 } else {
++                     var10000 = true;
++                 }
++              }
++          }
+       }
+-
+-      if(!this.l && System.currentTimeMillis() - this.time > 5000L) {
+-         this.a("You need to log in!");
+-      } else if(this.bytes != null) {
+-         Level var11 = this.server.mainLevel;
+-         byte[] var15 = new byte[1024];
+-         int var20 = 0;
+-         int var18 = this.bytes.length;
+-         this.networkHandler.send(PacketType.LEVEL_INITIALIZE, new Object[0]);
+-
+-         int var17;
+-         while(var18 > 0) {
+-            var17 = var18;
+-            if(var18 > var15.length) {
+-               var17 = var15.length;
+-            }
+-
+-            System.arraycopy(this.bytes, var20, var15, 0, var17);
+-            this.networkHandler.send(PacketType.LEVEL_DATA_CHUNK, new Object[]{Integer.valueOf(var17), var15, Integer.valueOf((var20 + var17) * 100 / this.bytes.length)});
+-            var18 -= var17;
+-            var20 += var17;
+-         }
+-
+-         this.networkHandler.send(PacketType.LEVEL_FINALIZE, new Object[]{Integer.valueOf(var11.width), Integer.valueOf(var11.depth), Integer.valueOf(var11.height)});
+-         this.networkHandler.send(PacketType.SPAWN_PLAYER, new Object[]{Integer.valueOf(-1), this.playerName, Integer.valueOf(this.xSpawn), Integer.valueOf(this.ySpawn), Integer.valueOf(this.zSpawn), Integer.valueOf(this.yawSpawn), Integer.valueOf(this.pitchSpawn)});
+-         this.server.a(this, PacketType.SPAWN_PLAYER, new Object[]{Integer.valueOf(this.playerID), this.playerName, Integer.valueOf((var11.xSpawn << 5) + 16), Integer.valueOf((var11.ySpawn << 5) + 16), Integer.valueOf((var11.zSpawn << 5) + 16), Integer.valueOf((int)(var11.rotSpawn * 256.0F / 360.0F)), Integer.valueOf(0)});
+-         this.server.a(PacketType.CHAT_MESSAGE, new Object[]{Integer.valueOf(-1), this.playerName + " joined the game"});
+-         Iterator var19 = this.server.b().iterator();
+-
+-         while(var19.hasNext()) {
+-            NetworkManager var12;
+-            if((var12 = (NetworkManager)var19.next()) != null && var12 != this && var12.l) {
+-               this.networkHandler.send(PacketType.SPAWN_PLAYER, new Object[]{Integer.valueOf(var12.playerID), var12.playerName, Integer.valueOf(var12.xSpawn), Integer.valueOf(var12.ySpawn), Integer.valueOf(var12.zSpawn), Integer.valueOf(var12.yawSpawn), Integer.valueOf(var12.pitchSpawn)});
+-            }
+-         }
+-
+-         this.m = true;
+-         var17 = 0;
+-
+-         while(var17 < this.n.size()) {
+-            PacketType var14 = (PacketType)this.n.get(var17++);
+-            var2 = (Object[])((Object[])this.n.get(var17++));
+-            this.b(var14, var2);
+-         }
+-
+-         this.n = null;
+-         this.bytes = null;
++  
++      if (!this.l && System.currentTimeMillis() - this.time > 5000L) {
++          this.a("You need to log in!");
++      } else if (this.bytes != null) {
++          Level var11 = this.server.mainLevel;
++          byte[] var15 = new byte[1024];
++          int var20 = 0;
++          int var18 = this.bytes.length;
++          this.networkHandler.send(PacketType.LEVEL_INITIALIZE, new Object[0]);
++  
++          int var17;
++          while (var18 > 0) {
++              var17 = var18;
++              if (var18 > var15.length) {
++                  var17 = var15.length;
++              }
++  
++              System.arraycopy(this.bytes, var20, var15, 0, var17);
++              this.networkHandler.send(PacketType.LEVEL_DATA_CHUNK, new Object[]{Integer.valueOf(var17), var15, Integer.valueOf((var20 + var17) * 100 / this.bytes.length)});
++              var18 -= var17;
++              var20 += var17;
++          }
++  
++          this.networkHandler.send(PacketType.LEVEL_FINALIZE, new Object[]{Integer.valueOf(var11.width), Integer.valueOf(var11.depth), Integer.valueOf(var11.height)});
++          this.networkHandler.send(PacketType.SPAWN_PLAYER, new Object[]{Integer.valueOf(-1), this.playerName, Integer.valueOf(this.xSpawn), Integer.valueOf(this.ySpawn), Integer.valueOf(this.zSpawn), Integer.valueOf(this.yawSpawn), Integer.valueOf(this.pitchSpawn)});
++          this.server.a(this, PacketType.SPAWN_PLAYER, new Object[]{Integer.valueOf(this.playerID), this.playerName, Integer.valueOf((var11.xSpawn << 5) + 16), Integer.valueOf((var11.ySpawn << 5) + 16), Integer.valueOf((var11.zSpawn << 5) + 16), Integer.valueOf((int)(var11.rotSpawn * 256.0F / 360.0F)), Integer.valueOf(0)});
++          this.server.a(PacketType.CHAT_MESSAGE, new Object[]{Integer.valueOf(-1), this.playerName + " joined the game"});
++          Iterator var19 = this.server.b().iterator();
++  
++          while (var19.hasNext()) {
++              NetworkManager var12;
++              if ((var12 = (NetworkManager)var19.next()) != null && var12 != this && var12.l) {
++                  this.networkHandler.send(PacketType.SPAWN_PLAYER, new Object[]{Integer.valueOf(var12.playerID), var12.playerName, Integer.valueOf(var12.xSpawn), Integer.valueOf(var12.ySpawn), Integer.valueOf(var12.zSpawn), Integer.valueOf(var12.yawSpawn), Integer.valueOf(var12.pitchSpawn)});
++              }
++          }
++          
++          this.m = true;
++          var17 = 0;
++  
++          while (var17 < this.n.size()) {
++              PacketType var14 = (PacketType)this.n.get(var17++);
++              var2 = (Object[])((Object[])this.n.get(var17++));
++              this.b(var14, var2);
++          }
++  
++          this.n = null;
++          this.bytes = null;
+       }
+-   }
+-
++  }
+    public final void b(PacketType var1, Object ... var2) {
+       if(!this.m) {
+          this.n.add(var1);
