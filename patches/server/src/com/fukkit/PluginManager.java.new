@@ -1,0 +1,106 @@
+package com.fukkit;
+
+import java.io.File;
+import java.net.URL;
+import java.net.URLClassLoader;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.jar.JarEntry;
+import java.util.jar.JarFile;
+import java.util.logging.Logger;
+
+import com.mojang.minecraft.server.MinecraftServer;
+
+public class PluginManager {
+    private static final String PLUGINS_FOLDER = "plugins";
+    private final Logger logger;
+    private final Map<String, JavaPlugin> plugins = new HashMap<>();
+    private final MinecraftServer server;
+
+    public PluginManager(MinecraftServer server) {
+        this.server = server;
+        this.logger = API.getInstance().getLogger("PluginManager");
+    }
+
+    public void loadPlugins() {
+        File pluginsDir = new File(PLUGINS_FOLDER);
+        if (!pluginsDir.exists() || !pluginsDir.isDirectory()) {
+            logger.info("Plugins dir not found, creating");
+            pluginsDir.mkdirs();
+        }
+
+        File[] jarFiles = pluginsDir.listFiles((dir, name) -> name.endsWith(".jar"));
+        if (jarFiles == null) {
+            return;
+        }
+
+        for (File file : jarFiles) {
+            try {
+                loadPluginsFromJar(file);
+            } catch (Exception e) {
+                logger.warning("Failed to load plugins from " + file.getName() + ": " + e.getMessage());
+            }
+        }
+    }
+
+    private void loadPluginsFromJar(File file) throws Exception {
+        JarFile jarFile = new JarFile(file);
+        URL[] urls = {new URL("jar:file:" + file.getPath() + "!/")};
+        URLClassLoader classLoader = new URLClassLoader(urls, getClass().getClassLoader());
+
+        jarFile.stream().forEach(jarEntry -> {
+            if (jarEntry.getName().endsWith(".class")) {
+                String className = jarEntry.getName().replace('/', '.').substring(0, jarEntry.getName().length() - 6);
+                try {
+                    Class<?> clazz = classLoader.loadClass(className);
+                    if (JavaPlugin.class.isAssignableFrom(clazz) && !clazz.equals(JavaPlugin.class)) {
+                        JavaPlugin plugin = (JavaPlugin) clazz.getDeclaredConstructor().newInstance();
+                        plugin.init(this, file, classLoader);
+                        plugins.put(plugin.getName(), plugin);
+                        logger.info("Loaded plugin: " + plugin.getName());
+                    }
+                } catch (Exception e) {
+                    logger.warning("Failed to load class " + className + ": " + e.getMessage());
+                }
+            }
+        });
+
+        jarFile.close();
+    }
+
+    public void enablePlugins() {
+        for (JavaPlugin plugin : plugins.values()) {
+            try {
+                plugin.onEnable();
+                logger.info("Enabled plugin: " + plugin.getName());
+            } catch (Exception e) {
+                logger.warning("Failed to enable plugin " + plugin.getName() + ": " + e.getMessage());
+            }
+        }
+    }
+
+    public void disablePlugins() {
+        for (JavaPlugin plugin : plugins.values()) {
+            try {
+                plugin.onDisable();
+                logger.info("Disabled plugin: " + plugin.getName());
+            } catch (Exception e) {
+                logger.warning("Failed to disable plugin " + plugin.getName() + ": " + e.getMessage());
+            }
+        }
+    }
+
+    public JavaPlugin getPlugin(String name) {
+        return plugins.get(name);
+    }
+
+    public List<JavaPlugin> getPlugins() {
+        return new ArrayList<>(plugins.values());
+    }
+
+    public MinecraftServer getServer() {
+        return server;
+    }
+}

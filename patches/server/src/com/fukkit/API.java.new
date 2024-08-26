@@ -7,10 +7,7 @@ import com.fukkit.event.EventSystem;
 import com.mojang.minecraft.level.Level;
 import com.mojang.minecraft.level.generator.LevelGenerator;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.logging.LogRecord;
@@ -20,6 +17,7 @@ public class API {
     private static API instance;
     private final MinecraftServer server;
     private final Map<String, BiConsumer<CommandSender, String[]>> customCommands;
+    private PluginManager pluginManager;
     private int levelWidth = 256;
     private int levelDepth = 256;
     private int levelHeight = 64;
@@ -27,7 +25,34 @@ public class API {
     private static Map<String, PrefixedLogger> pluginLoggers = new HashMap<>();
     public static Logger serverLogger = Logger.getLogger("MinecraftServer");
 
-    public Logger getLogger(String pluginName) {
+    public API(MinecraftServer server)
+    {
+        this.server = server;
+        this.customCommands = new HashMap<>();
+    }
+
+    public void loadPlugins() {
+        pluginManager.loadPlugins();
+    }
+
+    public void disablePlugins() {
+        pluginManager.disablePlugins();
+    }
+
+    public void enablePlugins() {
+        pluginManager.enablePlugins();
+    }
+
+
+    public JavaPlugin getPlugin(String name) {
+        return pluginManager.getPlugin(name);
+    }
+
+    public List<JavaPlugin> getPlugins() {
+        return pluginManager.getPlugins();
+    }
+
+    public static Logger getLogger(String pluginName) {
         return pluginLoggers.computeIfAbsent(pluginName, name -> {
             PrefixedLogger newLogger = new PrefixedLogger(serverLogger, "[" + name + "] ");
             newLogger.setParent(serverLogger);
@@ -35,7 +60,7 @@ public class API {
         });
     }
 
-    class PrefixedLogger extends Logger {
+    static class PrefixedLogger extends Logger {
     private final String prefix;
 
     PrefixedLogger(Logger parent, String prefix) {
@@ -77,51 +102,20 @@ public class API {
         };
     }
 
-
-    public void registerEvents(Plugin plugin, EventSystem.Listener listener) {
-        EventSystem.registerEvents(plugin, listener);
-    }
-
-    public void setLevelGeneratorClass(Class<? extends LevelGenerator> generatorClass) {
-        this.levelGeneratorClass = generatorClass;
-        if (server != null) {
-            server.setLevelGeneratorClass(generatorClass);
-        }
-    }
-
     public Class<? extends LevelGenerator> getLevelGeneratorClass() {
         return this.levelGeneratorClass;
-    }
-
-    private API(MinecraftServer server) {
-        this.customCommands = new HashMap<>();
-        this.server = server;
     }
 
     public static void initialize(MinecraftServer server) {
         if (instance == null) {
             instance = new API(server);
+            server.getWorldManager().initializeWorldCommand();
+            instance.pluginManager = new PluginManager(server);
             instance.setLevelDimensions(256, 256, 64);
-
-            instance.registerCommand("plugins", (sender, args) -> {
-                List<Plugin> plugins = PluginLoader.plugins;
-                if (plugins.isEmpty()) {
-                    sender.sendMessage("No plugins are currently loaded.");
-                } else {
-                    StringBuilder message = new StringBuilder("Plugins (" + plugins.size() + "): ");
-                    for (int i = 0; i < plugins.size(); i++) {
-                        message.append(plugins.get(i).getName());
-                        if (i < plugins.size() - 1) {
-                            message.append(", ");
-                        }
-                    }
-                    sender.sendMessage(message.toString());
-                }
-            });
-
+            instance.loadPlugins(); // Load plugins during initialization
+            instance.enablePlugins(); // Enable plugins after loading
         }
 
-        server.setLevelGeneratorClass(instance.levelGeneratorClass);
 
     }
 
@@ -244,7 +238,6 @@ public class API {
             server.a(player.getHandle(), input);
         }
     }
-
 
 
     public void registerCommand(String commandName, BiConsumer<CommandSender, String[]> handler) {

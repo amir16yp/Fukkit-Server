@@ -1,7 +1,7 @@
 package com.fukkit.event;
 
-import com.fukkit.Plugin;
 import com.mojang.minecraft.level.tile.Block;
+import com.fukkit.JavaPlugin;
 import com.fukkit.Location;
 import com.fukkit.Player;
 
@@ -16,7 +16,7 @@ public class EventSystem {
     private static final Map<Class<? extends Event>, Set<RegisteredListener>> listeners = new HashMap<>();
 
     public static abstract class Event {
-        private String name;
+        private final String name;
         private boolean cancelled = false;
 
         public Event() {
@@ -35,6 +35,7 @@ public class EventSystem {
             cancelled = cancel;
         }
     }
+
 
     public static class PlayerJoinEvent extends Event {
         private final Player player;
@@ -185,61 +186,60 @@ public class EventSystem {
     }
 
     
+    // Keep your existing event classes (PlayerJoinEvent, BlockPlaceEvent, etc.) here
+
     @Target(ElementType.METHOD)
     @Retention(RetentionPolicy.RUNTIME)
-    public @interface EventHandler {}
-
-    public enum EventPriority {
-        LOWEST, LOW, NORMAL, HIGH, HIGHEST, MONITOR
+    public @interface EventHandler {
+        boolean ignoreCancelled() default false;
     }
 
     public static class RegisteredListener {
-        private final Plugin plugin;
+        private final JavaPlugin plugin;
         private final Method method;
-        private final EventPriority priority;
+        private final boolean ignoreCancelled;
 
-        public RegisteredListener(Plugin plugin, Method method, EventPriority priority) {
+        public RegisteredListener(JavaPlugin plugin, Method method, boolean ignoreCancelled) {
             this.plugin = plugin;
             this.method = method;
-            this.priority = priority;
+            this.ignoreCancelled = ignoreCancelled;
         }
 
         public void execute(Event event) {
+            if (event.isCancelled() && ignoreCancelled) {
+                return;
+            }
             try {
                 method.invoke(plugin, event);
             } catch (Exception e) {
-                System.err.println("Error executing event handler: " + e.getMessage());
+                plugin.getLogger().severe("Error executing event handler in plugin " + plugin.getName() + ": " + e.getMessage());
+                e.printStackTrace();
             }
-        }
-
-        public EventPriority getPriority() {
-            return priority;
         }
     }
 
-    public static void registerEvents(Plugin plugin, Listener listener) {
+    public static void registerEvents(JavaPlugin plugin, Listener listener) {
         for (Method method : listener.getClass().getMethods()) {
             EventHandler annotation = method.getAnnotation(EventHandler.class);
             if (annotation != null) {
                 Class<?>[] parameterTypes = method.getParameterTypes();
                 if (parameterTypes.length != 1 || !Event.class.isAssignableFrom(parameterTypes[0])) {
+                    plugin.getLogger().warning("Invalid event handler method signature in " + listener.getClass().getName());
                     continue;
                 }
 
                 @SuppressWarnings("unchecked")
                 Class<? extends Event> eventClass = (Class<? extends Event>) parameterTypes[0];
-                EventPriority priority = EventPriority.NORMAL; // You can add priority to the annotation if needed
+                boolean ignoreCancelled = annotation.ignoreCancelled();
 
-                RegisteredListener registeredListener = new RegisteredListener(plugin, method, priority);
+                RegisteredListener registeredListener = new RegisteredListener(plugin, method, ignoreCancelled);
                 getEventListeners(eventClass).add(registeredListener);
             }
         }
     }
 
     private static Set<RegisteredListener> getEventListeners(Class<? extends Event> eventClass) {
-        return listeners.computeIfAbsent(eventClass, k -> new TreeSet<>(
-            Comparator.comparing(RegisteredListener::getPriority)
-        ));
+        return listeners.computeIfAbsent(eventClass, k -> new HashSet<>());
     }
 
     public static void callEvent(Event event) {
