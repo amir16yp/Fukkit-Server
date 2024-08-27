@@ -17,7 +17,15 @@
  import java.io.Serializable;
  import java.util.ArrayList;
  import java.util.Arrays;
-@@ -168,8 +166,6 @@
+@@ -51,7 +49,6 @@
+    public transient Object font;
+    public boolean growTrees;
+ 
+-
+    public Level() {
+       this.randomID = this.random.nextInt();
+       this.tickList = new ArrayList();
+@@ -168,8 +165,6 @@
        this.listeners.add(var1);
     }
  
@@ -26,7 +34,7 @@
     public void removeListener$74652038(MinecraftServer var1) {
        this.listeners.remove(var1);
     }
-@@ -230,10 +226,11 @@
+@@ -230,10 +225,11 @@
     }
  
     public boolean setTileNoNeighborChange(int var1, int var2, int var3, int var4) {
@@ -39,7 +47,7 @@
        if(var1 >= 0 && var2 >= 0 && var3 >= 0 && var1 < this.width && var2 < this.depth && var3 < this.height) {
           if(var4 == this.blocks[(var2 * this.height + var3) * this.width + var1]) {
              return false;
-@@ -318,7 +315,7 @@
+@@ -318,7 +314,7 @@
     }
  
     public boolean isLit(int var1, int var2, int var3) {
@@ -48,7 +56,7 @@
     }
  
     public int getTile(int var1, int var2, int var3) {
-@@ -327,7 +324,7 @@
+@@ -327,7 +323,7 @@
  
     public boolean isSolidTile(int var1, int var2, int var3) {
        Block var4;

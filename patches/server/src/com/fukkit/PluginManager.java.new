@@ -11,6 +11,7 @@ import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 import java.util.logging.Logger;
 
+import com.fukkit.event.EventSystem;
 import com.mojang.minecraft.server.MinecraftServer;
 
 public class PluginManager {
@@ -21,7 +22,11 @@ public class PluginManager {
 
     public PluginManager(MinecraftServer server) {
         this.server = server;
-        this.logger = API.getInstance().getLogger("PluginManager");
+        this.logger = API.getLogger("PluginManager");
+    }
+
+    public void registerEvents(JavaPlugin javaPlugin, EventSystem.Listener listener) {
+        EventSystem.registerEvents(javaPlugin, listener);
     }
 
     public void loadPlugins() {

@@ -8,6 +8,7 @@ import com.mojang.minecraft.server.MinecraftServer;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.util.*;
 import java.util.logging.Logger;
 
@@ -35,11 +36,14 @@ public class WorldManager {
     }
 
     public Level createWorld(String name, long seed, String generatorName) {
-        File levelFile = new File(name + "_level.dat");
-        if (levelFile.exists()) {
+        File cwFile = new File(name + ".cw");
+        File datFile = new File(name + "_level.dat");
+
+        if ((server.useCWformat && cwFile.exists()) || (!server.useCWformat && datFile.exists())) {
             logger.warning("World " + name + " already exists!");
             return loadWorld(name);
         }
+
 
         Class<? extends LevelGenerator> generatorClass = registeredGenerators.getOrDefault(generatorName, LevelGenerator.class);
         LevelGenerator generator;
@@ -68,23 +72,36 @@ public class WorldManager {
             return activeWorld;
         }
 
-        File levelFile = new File(name + "_level.dat");
-        if (!levelFile.exists()) {
-            logger.warning("World file for " + name + " does not exist.");
-            return null;
+        File cwFile = new File(name + ".cw");
+        File datFile = new File(name + "_level.dat");
+
+        Level level = null;
+
+        if (server.useCWformat && cwFile.exists()) {
+            try {
+                level = ClassicWorldParser.loadClassicWorld(cwFile);
+                logger.info("Loaded ClassicWorld: " + name);
+            } catch (IOException e) {
+                logger.severe("Failed to load ClassicWorld " + name + ": " + e.getMessage());
+            }
+        } else if (!server.useCWformat && datFile.exists()) {
+            try {
+                level = new LevelIO(server).load(new FileInputStream(datFile));
+                logger.info("Loaded world: " + name);
+            } catch (Exception e) {
+                logger.severe("Failed to load world " + name + ": " + e.getMessage());
+            }
         }
 
-        try {
-            Level level = new LevelIO(server).load(new FileInputStream(levelFile));
+        if (level != null) {
             setActiveWorld(name, level);
-            logger.info("Loaded world: " + name);
             return level;
-        } catch (Exception e) {
-            logger.severe("Failed to load world " + name + ": " + e.getMessage());
-            e.printStackTrace();
-            return null;
         }
+
+        logger.warning("World file for " + name + " does not exist in the preferred format.");
+        return null;
     }
+
 
     public void unloadWorld(boolean save) {
         if (activeWorld == null) {
@@ -102,12 +119,20 @@ public class WorldManager {
     }
 
     public void saveWorld(String name, Level level) {
-        try {
-            new LevelIO(server).save(level, new FileOutputStream(name + "_level.dat"));
-            logger.info("Saved world: " + name);
-        } catch (Exception e) {
-            logger.severe("Failed to save world " + name + ": " + e.getMessage());
-            e.printStackTrace();
+        if (server.useCWformat) {
+            try {
+                ClassicWorldParser.saveClassicWorld(level, new File(name + ".cw"));
+                logger.info("Saved world in ClassicWorld format: " + name + ".cw");
+            } catch (IOException e) {
+                logger.severe("Failed to save world " + name + " in ClassicWorld format: " + e.getMessage());
+            }
+        } else {
+            try {
+                new LevelIO(server).save(level, new FileOutputStream(name + "_level.dat"));
+                logger.info("Saved world: " + name + "_level.dat");
+            } catch (Exception e) {
+                logger.severe("Failed to save world " + name + " in .dat format: " + e.getMessage());
+            }
         }
     }
 
@@ -197,22 +222,40 @@ public class WorldManager {
 
     private void listWorlds(CommandSender sender) {
         File serverDir = new File(".");
-        File[] files = serverDir.listFiles((dir, name) -> name.endsWith("_level.dat"));
+        File[] datFiles = serverDir.listFiles((dir, name) -> name.endsWith("_level.dat"));
+        File[] cwFiles = serverDir.listFiles((dir, name) -> name.endsWith(".cw"));
 
-        if (files == null || files.length == 0) {
+        if ((datFiles == null || datFiles.length == 0) && (cwFiles == null || cwFiles.length == 0)) {
             sender.sendMessage("No worlds found.");
             return;
         }
 
-        List<String> worldNames = new ArrayList<>();
-        for (File file : files) {
-            String worldName = file.getName().replace("_level.dat", "");
-            worldNames.add(worldName);
+        Map<String, String> worldFormats = new HashMap<>();
+
+        if (datFiles != null) {
+            for (File file : datFiles) {
+                String worldName = file.getName().replace("_level.dat", "");
+                worldFormats.put(worldName, "DAT");
+            }
+        }
+
+        if (cwFiles != null) {
+            for (File file : cwFiles) {
+                String worldName = file.getName().replace(".cw", "");
+                if (worldFormats.containsKey(worldName)) {
+                    worldFormats.put(worldName, "DAT+CW");
+                } else {
+                    worldFormats.put(worldName, "CW");
+                }
+            }
         }
 
         sender.sendMessage("Available worlds:");
-        for (String worldName : worldNames) {
-            sender.sendMessage("- " + worldName + (worldName.equals(activeWorldName) ? " (active)" : ""));
+        for (Map.Entry<String, String> entry : worldFormats.entrySet()) {
+            String worldName = entry.getKey();
+            String format = entry.getValue();
+            String activeStatus = worldName.equals(activeWorldName) ? " (active)" : "";
+            sender.sendMessage("- " + worldName + " [" + format + "]" + activeStatus);
         }
     }
 

@@ -1,0 +1,551 @@
+package com.fukkit;
+
+import com.mojang.minecraft.level.Level;
+import com.mojang.minecraft.level.tile.Block;
+
+import java.io.*;
+import java.nio.ByteBuffer;
+import java.util.*;
+import java.util.logging.Logger;
+import java.util.zip.GZIPInputStream;
+import java.util.zip.GZIPOutputStream;
+
+public class ClassicWorldParser {
+    private static final int MAX_STRING_LENGTH = 32767;
+    private static final Logger logger = API.getLogger(ClassicWorldParser.class.getName());
+
+    public static Level loadClassicWorld(File file) throws IOException {
+        try (FileInputStream fis = new FileInputStream(file);
+             GZIPInputStream gzis = new GZIPInputStream(fis);
+             DataInputStream dis = new DataInputStream(gzis)) {
+
+            NBTTag rootTag = readNBTTag(dis);
+            if (rootTag instanceof NBTCompound) {
+                return parseClassicWorldData((NBTCompound) rootTag);
+            } else {
+                throw new IOException("Invalid ClassicWorld file format");
+            }
+        }
+    }
+
+    public static void saveClassicWorld(Level level, File file) throws IOException {
+        try (FileOutputStream fos = new FileOutputStream(file);
+             GZIPOutputStream gzos = new GZIPOutputStream(fos);
+             DataOutputStream dos = new DataOutputStream(gzos)) {
+
+            // Write root compound tag
+            writeCompoundStart(dos, "ClassicWorld");
+
+            // FormatVersion
+            writeByte(dos, "FormatVersion", (byte) 1);
+
+            // Name (limited to 64 characters)
+            writeString(dos, "Name", level.name.substring(0, Math.min(level.name.length(), 64)));
+
+            // UUID
+            writeByteArray(dos, "UUID", generateOrRetrieveUUID(level));
+
+            // Dimensions
+            writeShort(dos, "X", (short) level.width);
+            writeShort(dos, "Y", (short) level.depth);
+            writeShort(dos, "Z", (short) level.height);
+
+            // CreatedBy
+            writeCompoundStart(dos, "CreatedBy");
+            writeString(dos, "Service", "FukkitServer");
+            writeString(dos, "Username", level.creator);
+            writeCompoundEnd(dos);
+
+            // MapGenerator
+            writeCompoundStart(dos, "MapGenerator");
+            writeString(dos, "Software", "Fukkit");
+            writeString(dos, "MapGeneratorName", "default(placeholder)");
+            writeCompoundEnd(dos);
+
+            // Timestamps
+            writeLong(dos, "TimeCreated", System.currentTimeMillis() / 1000L);
+            writeLong(dos, "LastAccessed", System.currentTimeMillis() / 1000L);
+            writeLong(dos, "LastModified", System.currentTimeMillis() / 1000L);
+
+            // Spawn
+            writeCompoundStart(dos, "Spawn");
+            writeShort(dos, "X", (short) (level.xSpawn * 32));
+            writeShort(dos, "Y", (short) (level.ySpawn * 32));
+            writeShort(dos, "Z", (short) (level.zSpawn * 32));
+            writeByte(dos, "H", (byte) (level.rotSpawn * 256 / 360));
+            writeByte(dos, "P", (byte) 0); // Assuming no pitch information is available
+            writeCompoundEnd(dos);
+
+            // BlockArray
+            writeByteArray(dos, "BlockArray", level.blocks);
+
+            // Metadata
+            writeCompoundStart(dos, "Metadata");
+            writeMetadata(dos, level);
+            writeCompoundEnd(dos);
+
+            // End root compound
+            writeCompoundEnd(dos);
+
+        } catch (IOException e) {
+            logger.severe("Error saving ClassicWorld file: " + e.getMessage());
+            throw e;
+        }
+    }
+
+    private static void writeMetadata(DataOutputStream dos, Level level) throws IOException {
+        // CPE Metadata
+        writeCompoundStart(dos, "CPE");
+
+        // EnvColors
+        writeCompoundStart(dos, "EnvColors");
+        writeInt(dos, "ExtensionVersion", 1);
+        writeColor(dos, "Sky", level.skyColor);
+        writeColor(dos, "Cloud", level.cloudColor);
+        writeColor(dos, "Fog", level.fogColor);
+        // Add Ambient and Sunlight if available
+        writeCompoundEnd(dos);
+
+        // Add other CPE extensions here if needed
+
+        writeCompoundEnd(dos);
+    }
+
+    private static void writeColor(DataOutputStream dos, String name, int color) throws IOException {
+        writeCompoundStart(dos, name);
+        writeShort(dos, "R", (short) ((color >> 16) & 0xFF));
+        writeShort(dos, "G", (short) ((color >> 8) & 0xFF));
+        writeShort(dos, "B", (short) (color & 0xFF));
+        writeCompoundEnd(dos);
+    }
+
+    private static void writeCompoundStart(DataOutputStream dos, String name) throws IOException {
+        dos.writeByte(10); // Compound tag type
+        writeString(dos, name);
+    }
+
+    private static void writeCompoundEnd(DataOutputStream dos) throws IOException {
+        dos.writeByte(0); // End tag
+    }
+
+    private static void writeByte(DataOutputStream dos, String name, byte value) throws IOException {
+        dos.writeByte(1); // Byte tag type
+        writeString(dos, name);
+        dos.writeByte(value);
+    }
+
+    private static void writeShort(DataOutputStream dos, String name, short value) throws IOException {
+        dos.writeByte(2); // Short tag type
+        writeString(dos, name);
+        dos.writeShort(value);
+    }
+
+    private static void writeInt(DataOutputStream dos, String name, int value) throws IOException {
+        dos.writeByte(3); // Int tag type
+        writeString(dos, name);
+        dos.writeInt(value);
+    }
+
+    private static void writeLong(DataOutputStream dos, String name, long value) throws IOException {
+        dos.writeByte(4); // Long tag type
+        writeString(dos, name);
+        dos.writeLong(value);
+    }
+
+    private static void writeString(DataOutputStream dos, String name) throws IOException {
+        byte[] bytes = name.getBytes("UTF-8");
+        dos.writeShort(bytes.length);
+        dos.write(bytes);
+    }
+
+    private static void writeString(DataOutputStream dos, String name, String value) throws IOException {
+        dos.writeByte(8); // String tag type
+        writeString(dos, name);
+        writeString(dos, value);
+    }
+
+    private static void writeByteArray(DataOutputStream dos, String name, byte[] value) throws IOException {
+        dos.writeByte(7); // Byte array tag type
+        writeString(dos, name);
+        dos.writeInt(value.length);
+        dos.write(value);
+    }
+
+    private static byte[] generateOrRetrieveUUID(Level level) {
+        // You should implement a way to store and retrieve UUIDs for levels
+        // For now, we'll generate a new one each time
+        UUID uuid = UUID.randomUUID();
+        ByteBuffer bb = ByteBuffer.wrap(new byte[16]);
+        bb.putLong(uuid.getMostSignificantBits());
+        bb.putLong(uuid.getLeastSignificantBits());
+        return bb.array();
+    }
+
+    private static Level parseClassicWorldData(NBTCompound classicWorldTag) throws IOException {
+        short width = classicWorldTag.getShort("X");
+        short height = classicWorldTag.getShort("Y");
+        short depth = classicWorldTag.getShort("Z");
+        String name = classicWorldTag.getString("Name");
+        byte[] blocks = classicWorldTag.getByteArray("BlockArray");
+
+        Level level = new Level();
+        level.setData(width, height, depth, blocks);
+        level.name = name;
+
+        NBTCompound createdBy = classicWorldTag.getCompound("CreatedBy");
+        if (createdBy != null) {
+            level.creator = createdBy.getString("Username");
+        }
+
+        NBTCompound spawnTag = classicWorldTag.getCompound("Spawn");
+        if (spawnTag != null) {
+            int xSpawn = spawnTag.getShort("X") / 32;
+            int ySpawn = spawnTag.getShort("Y") / 32;
+            int zSpawn = spawnTag.getShort("Z") / 32;
+            float rotSpawn = spawnTag.getByte("H") * 360 / 256f;
+            level.setSpawnPos(xSpawn, ySpawn, zSpawn, rotSpawn);
+        }
+
+        NBTCompound metadataTag = classicWorldTag.getCompound("Metadata");
+        if (metadataTag != null) {
+            parseMetadata(level, metadataTag);
+        }
+
+        return level;
+    }
+
+    private static void parseMetadata(Level level, NBTCompound metadataTag) {
+        NBTCompound cpeTag = metadataTag.getCompound("CPE");
+        if (cpeTag != null) {
+            NBTCompound envColorsTag = cpeTag.getCompound("EnvColors");
+            if (envColorsTag != null) {
+                level.skyColor = getRGBColor(envColorsTag.getCompound("Sky"));
+                level.fogColor = getRGBColor(envColorsTag.getCompound("Fog"));
+                level.cloudColor = getRGBColor(envColorsTag.getCompound("Cloud"));
+            }
+        }
+    }
+
+    private static int getRGBColor(NBTCompound colorTag) {
+        if (colorTag == null) return 0;
+        int r = colorTag.getShort("R");
+        int g = colorTag.getShort("G");
+        int b = colorTag.getShort("B");
+        return (r << 16) | (g << 8) | b;
+    }
+
+    private static NBTTag readNBTTag(DataInputStream dis) throws IOException {
+        byte typeId = dis.readByte();
+        if (typeId == 0) return null;
+        String name = readString(dis);
+        return readNBTPayload(typeId, name, dis);
+    }
+
+    private static NBTTag readNBTPayload(byte typeId, String name, DataInputStream dis) throws IOException {
+        switch (typeId) {
+            case 1: return new NBTByte(name, dis.readByte());
+            case 2: return new NBTShort(name, dis.readShort());
+            case 3: return new NBTInt(name, dis.readInt());
+            case 4: return new NBTLong(name, dis.readLong());
+            case 5: return new NBTFloat(name, dis.readFloat());
+            case 6: return new NBTDouble(name, dis.readDouble());
+            case 7: return new NBTByteArray(name, readByteArray(dis));
+            case 8: return new NBTString(name, readString(dis));
+            case 9: return readNBTList(name, dis);
+            case 10: return readNBTCompound(name, dis);
+            default: throw new IOException("Invalid NBT tag type: " + typeId);
+        }
+    }
+
+    private static String readString(DataInputStream dis) throws IOException {
+        short length = dis.readShort();
+        byte[] bytes = new byte[length];
+        dis.readFully(bytes);
+        return new String(bytes, "UTF-8");
+    }
+
+    private static byte[] readByteArray(DataInputStream dis) throws IOException {
+        int length = dis.readInt();
+        byte[] bytes = new byte[length];
+        dis.readFully(bytes);
+        return bytes;
+    }
+
+    private static NBTList readNBTList(String name, DataInputStream dis) throws IOException {
+        byte typeId = dis.readByte();
+        int length = dis.readInt();
+        List<NBTTag> tags = new ArrayList<>();
+        for (int i = 0; i < length; i++) {
+            tags.add(readNBTPayload(typeId, "", dis));
+        }
+        return new NBTList(name, tags);
+    }
+
+    private static NBTCompound readNBTCompound(String name, DataInputStream dis) throws IOException {
+        Map<String, NBTTag> tags = new HashMap<>();
+        while (true) {
+            NBTTag tag = readNBTTag(dis);
+            if (tag == null) break;
+            tags.put(tag.getName(), tag);
+        }
+        return new NBTCompound(name, tags);
+    }
+
+    private static abstract class NBTTag {
+        private final String name;
+
+        NBTTag(String name) {
+            this.name = name;
+        }
+
+        public String getName() {
+            return name;
+        }
+    }
+
+    private static class NBTByte extends NBTTag {
+        private final byte value;
+
+        NBTByte(String name, byte value) {
+            super(name);
+            this.value = value;
+        }
+
+        public byte getValue() {
+            return value;
+        }
+    }
+
+    private static class NBTShort extends NBTTag {
+        private final short value;
+
+        NBTShort(String name, short value) {
+            super(name);
+            this.value = value;
+        }
+
+        public short getValue() {
+            return value;
+        }
+    }
+
+    private static class NBTInt extends NBTTag {
+        private final int value;
+
+        NBTInt(String name, int value) {
+            super(name);
+            this.value = value;
+        }
+
+        public int getValue() {
+            return value;
+        }
+    }
+
+    private static class NBTLong extends NBTTag {
+        private final long value;
+
+        NBTLong(String name, long value) {
+            super(name);
+            this.value = value;
+        }
+
+        public long getValue() {
+            return value;
+        }
+    }
+
+    private static class NBTFloat extends NBTTag {
+        private final float value;
+
+        NBTFloat(String name, float value) {
+            super(name);
+            this.value = value;
+        }
+
+        public float getValue() {
+            return value;
+        }
+    }
+
+    private static class NBTDouble extends NBTTag {
+        private final double value;
+
+        NBTDouble(String name, double value) {
+            super(name);
+            this.value = value;
+        }
+
+        public double getValue() {
+            return value;
+        }
+    }
+
+    private static class NBTByteArray extends NBTTag {
+        private final byte[] value;
+
+        NBTByteArray(String name, byte[] value) {
+            super(name);
+            this.value = value;
+        }
+
+        public byte[] getValue() {
+            return value;
+        }
+    }
+
+    private static class NBTString extends NBTTag {
+        private final String value;
+
+        NBTString(String name, String value) {
+            super(name);
+            this.value = value;
+        }
+
+        public String getValue() {
+            return value;
+        }
+    }
+
+    private static class NBTList extends NBTTag {
+        private final List<NBTTag> value;
+
+        NBTList(String name, List<NBTTag> value) {
+            super(name);
+            this.value = value;
+        }
+
+        public List<NBTTag> getValue() {
+            return value;
+        }
+    }
+
+    private static class NBTCompound extends NBTTag {
+        private final Map<String, NBTTag> value;
+
+        NBTCompound(String name, Map<String, NBTTag> value) {
+            super(name);
+            this.value = value;
+        }
+
+        public Map<String, NBTTag> getValue() {
+            return value;
+        }
+
+        public NBTTag getTag(String key) {
+            return value.get(key);
+        }
+
+        public byte getByte(String key) {
+            NBTTag tag = getTag(key);
+            return tag instanceof NBTByte ? ((NBTByte) tag).getValue() : 0;
+        }
+
+        public short getShort(String key) {
+            NBTTag tag = getTag(key);
+            return tag instanceof NBTShort ? ((NBTShort) tag).getValue() : 0;
+        }
+
+        public int getInt(String key) {
+            NBTTag tag = getTag(key);
+            return tag instanceof NBTInt ? ((NBTInt) tag).getValue() : 0;
+        }
+
+        public long getLong(String key) {
+            NBTTag tag = getTag(key);
+            return tag instanceof NBTLong ? ((NBTLong) tag).getValue() : 0;
+        }
+
+        public float getFloat(String key) {
+            NBTTag tag = getTag(key);
+            return tag instanceof NBTFloat ? ((NBTFloat) tag).getValue() : 0;
+        }
+
+        public double getDouble(String key) {
+            NBTTag tag = getTag(key);
+            return tag instanceof NBTDouble ? ((NBTDouble) tag).getValue() : 0;
+        }
+
+        public byte[] getByteArray(String key) {
+            NBTTag tag = getTag(key);
+            return tag instanceof NBTByteArray ? ((NBTByteArray) tag).getValue() : new byte[0];
+        }
+
+        public String getString(String key) {
+            NBTTag tag = getTag(key);
+            return tag instanceof NBTString ? ((NBTString) tag).getValue() : "";
+        }
+
+        public NBTCompound getCompound(String key) {
+            NBTTag tag = getTag(key);
+            return tag instanceof NBTCompound ? (NBTCompound) tag : null;
+        }
+    }
+
+    private void testCWLoader() {
+        try {
+            logger.info("Starting ClassicWorld loader test...");
+
+            File testFile = new File("test.cw");
+            if (!testFile.exists()) {
+                logger.warning("Test file 'test.cw' not found. Please ensure it exists in the server directory.");
+                return;
+            }
+
+            Level level = ClassicWorldParser.loadClassicWorld(testFile);
+
+            if (level == null) {
+                logger.warning("Failed to load level from test.cw");
+                return;
+            }
+
+            logger.info("Level loaded successfully!");
+            logger.info("Level name: " + level.name);
+            logger.info("Level creator: " + level.creator);
+            logger.info("Dimensions: " + level.width + "x" + level.height + "x" + level.depth);
+            logger.info("Spawn position: " + level.xSpawn + ", " + level.ySpawn + ", " + level.zSpawn);
+            logger.info("Spawn rotation: " + level.rotSpawn);
+
+            // Count the occurrences of each block type
+            int[] blockCounts = new int[256];
+            for (byte blockID : level.blocks) {
+                blockCounts[blockID & 0xFF]++;
+            }
+
+            // Print block statistics
+            logger.info("Block statistics:");
+            for (int i = 0; i < blockCounts.length; i++) {
+                if (blockCounts[i] > 0) {
+                    String blockName = Block.blocks[i] != null ? Block.blocks[i].getClass().getSimpleName() : "Unknown";
+                    logger.info("  Block ID " + i + " (" + blockName + "): " + blockCounts[i]);
+                }
+            }
+
+            // Check for some specific blocks or features
+            boolean hasWater = blockCounts[Block.WATER.id] > 0 || blockCounts[Block.STATIONARY_WATER.id] > 0;
+            boolean hasLava = blockCounts[Block.LAVA.id] > 0 || blockCounts[Block.STATIONARY_LAVA.id] > 0;
+            boolean hasTrees = blockCounts[Block.LOG.id] > 0 && blockCounts[Block.LEAVES.id] > 0;
+
+            logger.info("Level features:");
+            logger.info("  Has water: " + hasWater);
+            logger.info("  Has lava: " + hasLava);
+            logger.info("  Has trees: " + hasTrees);
+
+            // Check for custom colors
+            if (level.skyColor != 0) {
+                logger.info("Custom sky color: " + String.format("#%06X", level.skyColor));
+            }
+            if (level.fogColor != 0) {
+                logger.info("Custom fog color: " + String.format("#%06X", level.fogColor));
+            }
+            if (level.cloudColor != 0) {
+                logger.info("Custom cloud color: " + String.format("#%06X", level.cloudColor));
+            }
+
+            logger.info("ClassicWorld loader test completed successfully!");
+        } catch (IOException e) {
+            logger.warning("Error during ClassicWorld loader test: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+}

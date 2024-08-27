@@ -1,13 +1,16 @@
 --- a/src/com/mojang/minecraft/server/MinecraftServer.java
 +++ b/src/com/mojang/minecraft/server/MinecraftServer.java
-@@ -1,35 +1,19 @@
+@@ -1,38 +1,24 @@
  package com.mojang.minecraft.server;
  
 -import com.mojang.minecraft.level.LevelIO;
 -import com.mojang.minecraft.level.generator.LevelGenerator;
 +import com.fukkit.API;
++import com.fukkit.ClassicWorldParser;
 +import com.fukkit.Scheduler;
 +import com.fukkit.WorldManager;
++import com.mojang.minecraft.level.Level;
++import com.mojang.minecraft.level.tile.Block;
  import com.mojang.minecraft.net.PacketType;
 -import com.mojang.minecraft.server.ConsoleInput;
 -import com.mojang.minecraft.server.HeartbeatManager;
@@ -42,8 +45,11 @@
 +import java.util.*;
  import java.util.logging.ConsoleHandler;
  import java.util.logging.Handler;
- import java.util.logging.Level;
-@@ -51,7 +35,7 @@
+-import java.util.logging.Level;
+ import java.util.logging.Logger;
+ 
+ public class MinecraftServer implements Runnable {
+@@ -51,7 +37,7 @@
     public String MOTD;
     private int port;
     public boolean adminSlot;
@@ -52,12 +58,14 @@
     public PlayerManager playerManager1 = new PlayerManager("Admins", new File("admins.txt"));
     public PlayerManager playerManager2 = new PlayerManager("Banned", new File("banned.txt"));
     private PlayerManager playerManager3 = new PlayerManager("Banned (IP)", new File("banned-ip.txt"));
-@@ -63,13 +47,28 @@
+@@ -63,13 +49,29 @@
     public boolean verifyNames;
     private boolean growTrees;
     private int maxConnections;
 +   private Scheduler scheduler;
 +   private WorldManager worldManager;
++   public boolean useCWformat;
++   private long seed;
 +
 +   public Scheduler getScheduler()
 +   {
@@ -71,7 +79,6 @@
  
  
 -   public MinecraftServer() {
-+
 +   public MinecraftServer() throws SocketException, IOException {
 +      logger = API.getLogger("Server");
 +      this.scheduler = new Scheduler();
@@ -83,18 +90,23 @@
        try {
           this.properties.load(new FileReader("server.properties"));
        } catch (Exception var4) {
-@@ -89,10 +88,6 @@
+@@ -88,11 +90,10 @@
+          if(this.maxPlayers < 1) {
              this.maxPlayers = 1;
           }
- 
+-
 -         if(this.maxPlayers > 32) {
 -            this.maxPlayers = 32;
 -         }
 -
++         this.seed = Long.parseLong(this.properties.getProperty("seed", String.valueOf(new Random().nextLong())));
++         this.properties.setProperty("seed", String.valueOf(seed));
++         this.useCWformat = Boolean.parseBoolean(this.properties.getProperty("use-cw-format", "false"));
++         this.properties.setProperty("use-cw-format", String.valueOf(useCWformat));
           this.maxConnections = Integer.parseInt(this.properties.getProperty("max-connections", "3"));
           this.properties.setProperty("server-name", this.serverName);
           this.properties.setProperty("motd", this.MOTD);
-@@ -103,6 +98,11 @@
+@@ -103,6 +104,11 @@
           this.properties.setProperty("max-connections", "3");
           this.properties.setProperty("grow-trees", "" + this.growTrees);
           this.properties.setProperty("admin-slot", "" + this.adminSlot);
@@ -106,14 +118,13 @@
        } catch (Exception var3) {
           var3.printStackTrace();
           logger.warning("server.properties is broken! Delete it or fix it!");
-@@ -131,6 +131,14 @@
+@@ -131,6 +137,13 @@
           logger.warning("Failed to save server.properties!");
        }
  
 +      String mainWorldName = properties.getProperty("world-name", "world");
 +      this.mainLevel = worldManager.loadWorld(mainWorldName);
 +      if (this.mainLevel == null) {
-+         long seed = Long.parseLong(properties.getProperty("seed", String.valueOf(new Random().nextLong())));
 +         logger.info("World '" + mainWorldName + "' not found. Generating a new world with seed: " + seed);
 +         this.mainLevel = worldManager.createWorld(mainWorldName, seed, "default");
 +      }
@@ -121,7 +132,7 @@
        this.networkManager = new NetworkManager[this.maxPlayers];
        this.bindTo = new BindTo(this.port, this);
        (new ConsoleInput(this)).start();
-@@ -190,61 +198,76 @@
+@@ -190,61 +203,76 @@
  
     public void run() {
        logger.info("Now accepting input on " + this.port);
@@ -222,7 +233,7 @@
 -         logger.log(Level.SEVERE, "Error in main loop, server shutting down!", var12);
 -         var12.printStackTrace();
 +      } catch (Exception e) {
-+         logger.log(Level.SEVERE, "Error in main loop, server shutting down!", e);
++         logger.log(java.util.logging.Level.SEVERE, "Error in main loop, server shutting down!", e);
 +         e.printStackTrace();
        }
     }
@@ -232,7 +243,7 @@
     private static String a(Map var0) {
        try {
           String var1 = "";
-@@ -567,7 +590,7 @@
+@@ -567,7 +595,7 @@
  
     }
  
@@ -241,7 +252,7 @@
        this.playerManager2.addPlayer(var1);
        boolean var2 = false;
        Iterator var3 = this.n.iterator();
-@@ -586,7 +609,7 @@
+@@ -586,7 +614,7 @@
  
     }
  
@@ -250,7 +261,7 @@
        this.playerManager1.addPlayer(var1);
        Iterator var3 = this.n.iterator();
  
-@@ -600,7 +623,7 @@
+@@ -600,7 +628,7 @@
  
     }
  
@@ -259,7 +270,7 @@
        this.playerManager1.removePlayer(var1);
        Iterator var3 = this.n.iterator();
  
-@@ -663,44 +686,71 @@
+@@ -663,44 +691,44 @@
        return var2;
     }
  
@@ -287,67 +298,40 @@
 +
 +         if (server.mainLevel == null) {
 +            logger.info("Main world not found. Creating a new world.");
++            logger.info("Using seed: " + server.seed);
 +
-+            Properties properties = server.getProperties();
-+            long seed;
-+            boolean newSeed = false;
++            // Create the new world using WorldManager
++            server.mainLevel = server.worldManager.createWorld(mainWorldName, server.seed, "default");
 +
-+            if (properties.containsKey("seed")) {
-+               try {
-+                  seed = Long.parseLong(properties.getProperty("seed"));
-+               } catch (NumberFormatException e) {
-+                  logger.warning("Invalid seed in properties. Generating a new seed.");
-+                  seed = new Random().nextLong();
-+                  newSeed = true;
-+               }
-+            } else {
-+               seed = new Random().nextLong();
-+               newSeed = true;
++            if (server.mainLevel == null) {
++               throw new RuntimeException("Failed to create the main world");
              }
 -         } else {
 -            logger.warning("No level file found. Generating a new level");
--         }
+          }
  
 -         if(var1.mainLevel == null) {
 -            var1.mainLevel = (new LevelGenerator(var1)).generate("--", 256, 256, 64);
 -         }
-+            if (newSeed) {
-+               properties.setProperty("seed", String.valueOf(seed));
-+               try (FileOutputStream out = new FileOutputStream("server.properties")) {
-+                  properties.store(out, "Minecraft server properties");
-+               } catch (IOException e) {
-+                  logger.warning("Failed to save server.properties with new seed: " + e.getMessage());
-+               }
-+            }
++         // Set up world properties
++         server.mainLevel.creativeMode = true;
++         server.mainLevel.growTrees = Boolean.parseBoolean(server.properties.getProperty("grow-trees", "false"));
++         server.mainLevel.addListener$74652038(server);
  
 -         try {
 -            new LevelIO(var1);
 -            LevelIO.save(var1.mainLevel, new FileOutputStream("server_level.dat"));
 -         } catch (Exception var3) {
 -            ;
-+            logger.info("Using seed: " + seed);
-+
-+            // Create the new world using WorldManager
-+            server.mainLevel = server.worldManager.createWorld(mainWorldName, seed, "default");
-+
-+            if (server.mainLevel == null) {
-+               throw new RuntimeException("Failed to create the main world");
-+            }
-          }
+-         }
++         // Start the server thread
++         new Thread(server).start();
  
 -         var1.mainLevel.creativeMode = true;
 -         var1.mainLevel.growTrees = var1.growTrees;
 -         var1.mainLevel.addListener$74652038(var1);
 -         (new Thread(var6)).start();
 -      } catch (Exception var5) {
-+         // Set up world properties
-+         server.mainLevel.creativeMode = true;
-+         server.mainLevel.growTrees = Boolean.parseBoolean(server.properties.getProperty("grow-trees", "false"));
-+         server.mainLevel.addListener$74652038(server);
-+
-+         // Start the server thread
-+         new Thread(server).start();
-+
 +      } catch (Exception e) {
           logger.severe("Failed to start the server!");
 -         var5.printStackTrace();
@@ -359,7 +343,7 @@
     // $FF: synthetic method
     static List a(MinecraftServer var0) {
        return var0.v;
-@@ -738,4 +788,9 @@
+@@ -738,4 +766,9 @@
           logger.warning("Failed to open file server.log for writing: " + var5);
        }
     }

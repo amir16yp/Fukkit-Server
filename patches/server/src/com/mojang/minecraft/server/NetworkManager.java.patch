@@ -209,8 +209,8 @@
 +                                      newBlock.onPlace(var7, var13, var6, var5);
 +                          
 +                                      // You might want to notify nearby clients about the block change
-+                                      this.server.a(var13, var6, var5);
 +                                  }
++                                  this.server.a(var13, var6, var5);
 +                              }
 +                          }
 +                      }
