@@ -13,7 +13,7 @@
  import java.net.HttpURLConnection;
  import java.net.URL;
  
-@@ -18,9 +13,9 @@
+@@ -18,16 +13,16 @@
  
  
     HeartbeatManager(MinecraftServer var1, String var2) {
@@ -24,3 +24,11 @@
     }
  
     public final void run() {
+       HttpURLConnection var1 = null;
+ 
+       try {
+-         (var1 = (HttpURLConnection)(new URL("http://www.minecraft.net/heartbeat.jsp")).openConnection()).setRequestMethod("POST");
++         (var1 = (HttpURLConnection)(new URL("http://www.classicube.net/heartbeat.jsp")).openConnection()).setRequestMethod("POST");
+          var1.setDoOutput(true);
+          var1.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
+          var1.setRequestProperty("Content-Length", "" + Integer.toString(this.name.getBytes().length));

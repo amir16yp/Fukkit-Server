@@ -1,0 +1,11 @@
+--- a/src/com/mojang/minecraft/server/SaltGenerator.java
++++ b/src/com/mojang/minecraft/server/SaltGenerator.java
+@@ -6,7 +6,7 @@
+ 
+ public final class SaltGenerator {
+ 
+-   private String salt;
++   public String salt;
+ 
+ 
+    public SaltGenerator(String var1) {
