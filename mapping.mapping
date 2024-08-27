@@ -1,8 +1,0 @@
-CLASS com/mojang/minecraft/server/MinecraftServer
-	FIELD g adminList Lcom/mojang/minecraft/server/f;
-	FIELD h bannedList Lcom/mojang/minecraft/server/f;
-	FIELD u bannedIPlist Lcom/mojang/minecraft/server/f;
-CLASS com/mojang/minecraft/server/c com/mojang/minecraft/server/LogFormatter
-	METHOD format (Ljava/util/logging/LogRecord;)Ljava/lang/String;
-		ARG 3 logLevel
-CLASS com/mojang/minecraft/server/f com/mojang/minecraft/server/PlayerList
