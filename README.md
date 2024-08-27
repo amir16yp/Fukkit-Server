@@ -10,6 +10,7 @@ Fukkit Server is an enhanced decompilation and recompilation of the Minecraft Cl
 - **Bukkit-like API**: Modernized API for seamless plugin development, including:
   - **Event Handling**: Register and manage events (e.g., player joins, chat messages, player movements).
   - **Command System**: Implement custom commands with permission support and world management.
+- Support for .cw and .dat level files
 - **Performance Optimizations**: Improved server efficiency for smoother gameplay.
 - **Extended Customization**: More options to tailor your server to your needs.
 
