@@ -104,6 +104,12 @@ apply_patches() {
     done
 }
 
+overwrite_output_with_work() {
+  rm -rf work/server/
+  mkdir -p work/server/
+  cp -r output/server/ work/server/
+}
+
 # Function to check if a command exists
 command_exists() {
     command -v "$1" >/dev/null 2>&1
