@@ -26,9 +26,9 @@ decompile() {
 	fi
 }
 
-decompile client minecraft
+#decompile client minecraft
 decompile server minecraft-server
 
 rm -rf temp
-mkdir -p build/client build/server
+mkdir -p build/server
 echo "DONE WITH EVERYTHING! ENJOY!"
