@@ -34,7 +34,7 @@ public class Player implements CommandSender{
     }
 
     public void kick(String reason) {
-        handle.a(reason);
+        handle.kickPlayer(reason);
     }
 
     public void ban() {

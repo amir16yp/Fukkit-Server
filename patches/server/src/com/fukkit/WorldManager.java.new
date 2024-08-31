@@ -86,7 +86,7 @@ public class WorldManager {
             }
         } else if (!server.useCWformat && datFile.exists()) {
             try {
-                level = new LevelIO(server).load(new FileInputStream(datFile));
+                level = LevelIO.load(new FileInputStream(datFile));
                 logger.info("Loaded world: " + name);
             } catch (Exception e) {
                 logger.severe("Failed to load world " + name + ": " + e.getMessage());
@@ -128,7 +128,7 @@ public class WorldManager {
             }
         } else {
             try {
-                new LevelIO(server).save(level, new FileOutputStream(name + "_level.dat"));
+                LevelIO.save(level, new FileOutputStream(name + "_level.dat"));
                 logger.info("Saved world: " + name + "_level.dat");
             } catch (Exception e) {
                 logger.severe("Failed to save world " + name + " in .dat format: " + e.getMessage());

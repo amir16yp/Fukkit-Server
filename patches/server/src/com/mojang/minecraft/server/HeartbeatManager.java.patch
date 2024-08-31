@@ -32,3 +32,12 @@
           var1.setDoOutput(true);
           var1.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
           var1.setRequestProperty("Content-Length", "" + Integer.toString(this.name.getBytes().length));
+@@ -40,7 +35,7 @@
+          (var2 = new DataOutputStream(var1.getOutputStream())).writeBytes(this.name);
+          var2.flush();
+          var2.close();
+-         BufferedReader var9;
++         BufferedReader var9; 
+          String var3 = (var9 = new BufferedReader(new InputStreamReader(var1.getInputStream()))).readLine();
+          if(!MinecraftServer.b(this.server).equals(var3)) {
+             MinecraftServer.logger.info("To connect directly to this server, surf to: " + var3);

@@ -47,6 +47,15 @@
        if(var1 >= 0 && var2 >= 0 && var3 >= 0 && var1 < this.width && var2 < this.depth && var3 < this.height) {
           if(var4 == this.blocks[(var2 * this.height + var3) * this.width + var1]) {
              return false;
+@@ -255,7 +251,7 @@
+             this.calcLightDepths(var1, var3, 1, 1);
+ 
+             for(var4 = 0; var4 < this.listeners.size(); ++var4) {
+-               ((MinecraftServer)this.listeners.get(var4)).a(var1, var2, var3);
++               ((MinecraftServer)this.listeners.get(var4)).updateBlock(var1, var2, var3);
+             }
+ 
+             return true;
 @@ -318,7 +314,7 @@
     }
  

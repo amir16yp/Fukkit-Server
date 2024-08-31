@@ -3,13 +3,9 @@ package com.fukkit;
 import com.mojang.minecraft.net.PacketType;
 import com.mojang.minecraft.server.MinecraftServer;
 import com.mojang.minecraft.server.NetworkManager;
-import com.fukkit.event.EventSystem;
 import com.mojang.minecraft.level.Level;
-import com.mojang.minecraft.level.generator.LevelGenerator;
-
 import java.util.*;
 import java.util.function.BiConsumer;
-import java.util.function.Consumer;
 import java.util.logging.LogRecord;
 import java.util.logging.Logger;
 
@@ -18,10 +14,6 @@ public class API {
     private final MinecraftServer server;
     private final Map<String, BiConsumer<CommandSender, String[]>> customCommands;
     private PluginManager pluginManager;
-    private int levelWidth = 256;
-    private int levelDepth = 256;
-    private int levelHeight = 64;
-    private Class<? extends LevelGenerator> levelGeneratorClass = LevelGenerator.class;
     private static Map<String, PrefixedLogger> pluginLoggers = new HashMap<>();
     private PermissionManager permissionManager;
     public static Logger serverLogger = Logger.getLogger("MinecraftServer");
@@ -131,7 +123,7 @@ public class API {
     }
 
     public void sendGlobalMessage(String msg) {
-        this.server.a(PacketType.CHAT_MESSAGE, new Object[]{Integer.valueOf(-1), msg});
+        this.server.broadcastPacket(PacketType.CHAT_MESSAGE, new Object[]{Integer.valueOf(-1), msg});
     }
 
     public List<Player> getOnlinePlayers() {
@@ -147,7 +139,7 @@ public class API {
     public void kickPlayer(String playerName, String reason) {
         NetworkManager player = getPlayerHandle(playerName);
         if (player != null) {
-            player.a(reason);
+            player.kickPlayer(reason);
         }
     }
 
@@ -182,7 +174,7 @@ public class API {
     public void setBlock(int x, int y, int z, byte blockType) {
         Level level = getMainLevel();
         level.setTile(x, y, z, blockType);
-        this.server.a(x, y, z);  // Notify clients of the block change
+        this.server.updateBlock(x, y, z);  // Notify clients of the block change
     }
 
     public byte getBlockType(int x, int y, int z) {
@@ -190,7 +182,7 @@ public class API {
     }
 
     public void executeConsoleCommand(String command) {
-        this.server.a(null, command);
+        this.server.executeCommand(null, command);
     }
 
     public void processConsoleInput(String input) {
@@ -207,7 +199,7 @@ public class API {
         } else {
             // If it's not a custom command, pass it to the server's default command handler
             getLogger("Server").info("Passing console command to default handler: " + commandName);
-            server.a(null, input);
+            server.executeCommand(null, input);
         }
     }
     
@@ -226,7 +218,7 @@ public class API {
             if (player.isOp())
             {
                 getLogger("Server").info("Passing player command from " + player.getName() + " to default handler: " + commandName);
-                server.a(player.getHandle(), input);
+                server.executeCommand(player.getHandle(), input);
             } else {
                 player.sendMessage("Vanilla command requires OP!");
             }

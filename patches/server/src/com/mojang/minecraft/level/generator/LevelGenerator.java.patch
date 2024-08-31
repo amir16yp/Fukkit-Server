@@ -1,6 +1,6 @@
 --- a/src/com/mojang/minecraft/level/generator/LevelGenerator.java
 +++ b/src/com/mojang/minecraft/level/generator/LevelGenerator.java
-@@ -6,31 +6,64 @@
+@@ -6,33 +6,66 @@
  import com.mojang.minecraft.level.tile.Block;
  import com.mojang.minecraft.server.MinecraftServer;
  import com.mojang.util.MathHelper;
@@ -68,16 +68,83 @@
     }
  
 -   public final Level generate(String var1, int var2, int var3, int var4) {
-+   public Level generate(String var1) {
-+      int var3;
-       this.server.a("Generating level");
+-      this.server.a("Generating level");
 -      this.width = 256;
 -      this.depth = 256;
 -      this.height = 64;
 -      this.waterLevel = 32;
++   public Level generate(String var1) {
++      int var3;
++      this.server.logInfo("Generating level");
        this.blocks = new byte[256 << 8 << 6];
-       this.server.b("Raising..");
+-      this.server.b("Raising..");
++      this.server.logFine("Raising..");
        LevelGenerator var41 = this;
+       CombinedNoise var5 = new CombinedNoise(new OctaveNoise(this.random, 8), new OctaveNoise(this.random, 8));
+       CombinedNoise var6 = new CombinedNoise(new OctaveNoise(this.random, 8), new OctaveNoise(this.random, 8));
+@@ -59,7 +92,7 @@
+          }
+       }
+ 
+-      this.server.b("Eroding..");
++      this.server.logFine("Eroding..");
+       int[] var42 = var8;
+       var41 = this;
+       var6 = new CombinedNoise(new OctaveNoise(this.random, 8), new OctaveNoise(this.random, 8));
+@@ -79,7 +112,7 @@
+          }
+       }
+ 
+-      this.server.b("Soiling..");
++      this.server.logFine("Soiling..");
+       var42 = var8;
+       var41 = this;
+       int var45 = this.width;
+@@ -125,7 +158,7 @@
+          }
+       }
+ 
+-      this.server.b("Carving..");
++      this.server.logFine("Carving..");
+       boolean var46 = true;
+       boolean var43 = false;
+       var41 = this;
+@@ -183,7 +216,7 @@
+       this.populateOre(Block.COAL_ORE.id, 90, 1, 4);
+       this.populateOre(Block.IRON_ORE.id, 70, 2, 4);
+       this.populateOre(Block.GOLD_ORE.id, 50, 3, 4);
+-      this.server.b("Watering..");
++      this.server.logFine("Watering..");
+       var41 = this;
+       var51 = Block.STATIONARY_WATER.id;
+ 
+@@ -208,7 +241,7 @@
+          }
+       }
+ 
+-      this.server.b("Melting..");
++      this.server.logFine("Melting..");
+       var41 = this;
+       var45 = this.width * this.depth * this.height / 20000;
+ 
+@@ -221,7 +254,7 @@
+          }
+       }
+ 
+-      this.server.b("Growing..");
++      this.server.logFine("Growing..");
+       var42 = var8;
+       var41 = this;
+       var45 = this.width;
+@@ -251,7 +284,7 @@
+          }
+       }
+ 
+-      this.server.b("Planting..");
++      this.server.logFine("Planting..");
+       var42 = var8;
+       var41 = this;
+       var45 = this.width;
 @@ -405,8 +438,8 @@
  
     private long flood(int var1, int var2, int var3, int var4, int var5) {

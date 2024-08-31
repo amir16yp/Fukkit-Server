@@ -1,10 +1,11 @@
 --- a/src/com/mojang/minecraft/level/LevelIO.java
 +++ b/src/com/mojang/minecraft/level/LevelIO.java
-@@ -1,13 +1,8 @@
+@@ -1,33 +1,18 @@
  package com.mojang.minecraft.level;
  
 -import com.mojang.minecraft.level.Level;
 -import com.mojang.minecraft.level.LevelObjectInputStream;
++import com.fukkit.API;
  import com.mojang.minecraft.server.MinecraftServer;
 -import java.io.DataInputStream;
 -import java.io.DataOutputStream;
@@ -13,15 +14,38 @@
 -import java.io.OutputStream;
 +
 +import java.io.*;
++import java.util.logging.Logger;
  import java.util.zip.GZIPInputStream;
  import java.util.zip.GZIPOutputStream;
  
-@@ -63,7 +58,7 @@
+ public final class LevelIO {
+ 
+-   private MinecraftServer server;
+-
+-
+-   public LevelIO(MinecraftServer var1) {
+-      this.server = var1;
+-   }
++   private static final Logger logger = API.getLogger("LevelIO");
+ 
+-   public final Level load(InputStream var1) {
+-      if(this.server != null) {
+-         this.server.a("Loading level");
+-      }
+-
+-      if(this.server != null) {
+-         this.server.b("Reading..");
+-      }
++   public static final Level load(InputStream var1) {
+ 
+       try {
+          DataInputStream var10;
+@@ -63,7 +48,7 @@
           }
        } catch (Exception var9) {
           var9.printStackTrace();
 -         "Failed to load level: " + var9.toString();
-+         this.server.b("Failed to load level: " + var9.toString());
++         logger.fine("Failed to load level: " + var9.toString());
           return null;
        }
     }

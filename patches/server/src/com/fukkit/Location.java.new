@@ -61,7 +61,7 @@ public class Location {
                 block.onPlace(level, x, y, z);
                 
                 // Notify the server about the block change
-                API.getInstance().getServer().a(x, y, z);
+                API.getInstance().getServer().updateBlock(x, y, z);
                 
                 return true;
             }

@@ -20,7 +20,57 @@
  import java.io.IOException;
  import java.util.ArrayList;
  import java.util.Iterator;
-@@ -130,6 +134,9 @@
+@@ -58,7 +62,7 @@
+       return !this.l?(var1 = this.networkHandler).address:this.playerName + " (" + (var1 = this.networkHandler).address + ")";
+    }
+ 
+-   public final void a(PacketType var1, Object[] var2) {
++   public final void handlePacket(PacketType var1, Object[] var2) {
+       if(!this.kicked) {
+          if(var1 != PacketType.INDENTIFICATION) {
+             if(var1 != PacketType.PING) {
+@@ -72,7 +76,7 @@
+                   } else if(var1 == PacketType.CHAT_MESSAGE) {
+                      String var7;
+                      if((var7 = var2[1].toString().trim()).length() > 0) {
+-                        this.c(var7);
++                        this.handleChatMessage(var7);
+                      }
+ 
+                   } else {
+@@ -102,24 +106,24 @@
+             }
+ 
+             if(var3.length() < 2 || var3.length() > 16) {
+-               this.a("Illegal name.");
++               this.kickPlayer("Illegal name.");
+             }
+ 
+             if(this.server.verifyNames && !var8.equals(this.server.saltGenerator.generate(var3))) {
+-               this.a("The name wasn\'t verified by minecraft.net!");
++               this.kickPlayer("The name wasn\'t verified by minecraft.net!");
+             } else if(var6 != 7) {
+-               this.a("Wrong protocol version.");
++               this.kickPlayer("Wrong protocol version.");
+             } else if(this.server.playerManager2.containsPlayer(var3)) {
+-               this.a("You\'re banned!");
+-            } else if(this.server.adminSlot && !this.server.playerManager1.containsPlayer(var3) && this.server.a() < 1) {
++               this.kickPlayer("You\'re banned!");
++            } else if(this.server.adminSlot && !this.server.playerManager1.containsPlayer(var3) && this.server.getAvailableSlots() < 1) {
+                this.networkHandler.send(PacketType.DISCONNECT, new Object[]{"The server is full!"});
+                logger.info(var3 + " connected, but got kicked because the server was almost full and there are reserved admin slots.");
+-               this.server.a(this);
++               this.server.schedulePlayerDisconnect(this);
+                this.kicked = true;
+             } else {
+                NetworkManager var11;
+                if((var11 = this.server.c(var3)) != null) {
+-                  var11.a("You logged in from another computer.");
++                  var11.kickPlayer("You logged in from another computer.");
+                }
+ 
+                logger.info(this + " logged in as " + var3);
+@@ -130,12 +134,15 @@
                 byte[] var10 = var9.copyBlocks();
                 (new LevelSaver(this, var10)).start();
                 this.server.playerManager4.addPlayer(var3);
@@ -30,7 +80,14 @@
              }
           }
        }
-@@ -153,14 +160,17 @@
+    }
+ 
+-   private void c(String var1) {
++   private void handleChatMessage(String var1) {
+       var1 = var1.trim();
+       this.timeTillTalk += var1.length() + 15 << 2;
+       if(this.timeTillTalk > 600) {
+@@ -153,27 +160,30 @@
           }
  
           if(var1.startsWith("/")) {
@@ -49,11 +106,29 @@
 +
 +            if (!chatEvent.isCancelled())
 +            {
-+               this.server.a(PacketType.CHAT_MESSAGE, new Object[]{Integer.valueOf(this.playerID), this.playerName + ": " + chatEvent.getMessage()});
++               this.server.broadcastPacket(PacketType.CHAT_MESSAGE, new Object[]{Integer.valueOf(this.playerID), this.playerName + ": " + chatEvent.getMessage()});
 +            }
           }
        }
     }
+ 
+-   public final void a(String var1) {
+-      this.networkHandler.send(PacketType.DISCONNECT, new Object[]{var1});
+-      logger.info("Kicking " + this + ": " + var1);
+-      this.server.a(this);
++   public final void kickPlayer(String reason) {
++      this.networkHandler.send(PacketType.DISCONNECT, new Object[]{reason});
++      logger.info("Kicking " + this + ": " + reason);
++      this.server.schedulePlayerDisconnect(this);
+       this.kicked = true;
+    }
+ 
+    private void d(String var1) {
+-      this.a("Cheat detected: " + var1);
++      this.kickPlayer("Cheat detected: " + var1);
+    }
+ 
+    public final void b(String var1) {
 @@ -185,181 +195,226 @@
     }
  
@@ -210,7 +285,7 @@
 +                          
 +                                      // You might want to notify nearby clients about the block change
 +                                  }
-+                                  this.server.a(var13, var6, var5);
++                                  this.server.updateBlock(var13, var6, var5);
 +                              }
 +                          }
 +                      }
@@ -299,7 +374,7 @@
 +                                 this.zSpawn = var5;
 +                                 this.yawSpawn = var4;
 +                                 this.pitchSpawn = var3;
-+                                 this.server.a(this, PacketType.POSITION_ROTATION, new Object[]{Integer.valueOf(this.playerID), Short.valueOf(var13), Short.valueOf(var6), Short.valueOf(var5), Byte.valueOf(var4), Byte.valueOf(var3)});
++                                 this.server.broadcastPacketExcept(this, PacketType.POSITION_ROTATION, new Object[]{Integer.valueOf(this.playerID), Short.valueOf(var13), Short.valueOf(var6), Short.valueOf(var5), Byte.valueOf(var4), Byte.valueOf(var3)});
 +                                 var10000 = false;
 +                                 continue;
 +                             }
@@ -307,19 +382,19 @@
 +                             if (var13 == this.xSpawn && var6 == this.ySpawn && var5 == this.zSpawn) {
 +                                 this.yawSpawn = var4;
 +                                 this.pitchSpawn = var3;
-+                                 this.server.a(this, PacketType.ROTATION_UPDATE, new Object[]{Integer.valueOf(this.playerID), Byte.valueOf(var4), Byte.valueOf(var3)});
++                                 this.server.broadcastPacketExcept(this, PacketType.ROTATION_UPDATE, new Object[]{Integer.valueOf(this.playerID), Byte.valueOf(var4), Byte.valueOf(var3)});
 +                             } else if (var4 == this.yawSpawn && var3 == this.pitchSpawn) {
 +                                 this.xSpawn = var13;
 +                                 this.ySpawn = var6;
 +                                 this.zSpawn = var5;
-+                                 this.server.a(this, PacketType.POSITION_UPDATE, new Object[]{Integer.valueOf(this.playerID), Integer.valueOf(var22), Integer.valueOf(var23), Integer.valueOf(var24)});
++                                 this.server.broadcastPacketExcept(this, PacketType.POSITION_UPDATE, new Object[]{Integer.valueOf(this.playerID), Integer.valueOf(var22), Integer.valueOf(var23), Integer.valueOf(var24)});
 +                             } else {
 +                                 this.xSpawn = var13;
 +                                 this.ySpawn = var6;
 +                                 this.zSpawn = var5;
 +                                 this.yawSpawn = var4;
 +                                 this.pitchSpawn = var3;
-+                                 this.server.a(this, PacketType.POSITION_ROTATION_UPDATE, new Object[]{Integer.valueOf(this.playerID), Integer.valueOf(var22), Integer.valueOf(var23), Integer.valueOf(var24), Byte.valueOf(var4), Byte.valueOf(var3)});
++                                 this.server.broadcastPacketExcept(this, PacketType.POSITION_ROTATION_UPDATE, new Object[]{Integer.valueOf(this.playerID), Integer.valueOf(var22), Integer.valueOf(var23), Integer.valueOf(var24), Byte.valueOf(var4), Byte.valueOf(var3)});
 +                             }
 +                         }
 +                         var10000 = var21;
@@ -393,7 +468,7 @@
 -         this.bytes = null;
 +  
 +      if (!this.l && System.currentTimeMillis() - this.time > 5000L) {
-+          this.a("You need to log in!");
++          this.kickPlayer("You need to log in!");
 +      } else if (this.bytes != null) {
 +          Level var11 = this.server.mainLevel;
 +          byte[] var15 = new byte[1024];
@@ -416,8 +491,8 @@
 +  
 +          this.networkHandler.send(PacketType.LEVEL_FINALIZE, new Object[]{Integer.valueOf(var11.width), Integer.valueOf(var11.depth), Integer.valueOf(var11.height)});
 +          this.networkHandler.send(PacketType.SPAWN_PLAYER, new Object[]{Integer.valueOf(-1), this.playerName, Integer.valueOf(this.xSpawn), Integer.valueOf(this.ySpawn), Integer.valueOf(this.zSpawn), Integer.valueOf(this.yawSpawn), Integer.valueOf(this.pitchSpawn)});
-+          this.server.a(this, PacketType.SPAWN_PLAYER, new Object[]{Integer.valueOf(this.playerID), this.playerName, Integer.valueOf((var11.xSpawn << 5) + 16), Integer.valueOf((var11.ySpawn << 5) + 16), Integer.valueOf((var11.zSpawn << 5) + 16), Integer.valueOf((int)(var11.rotSpawn * 256.0F / 360.0F)), Integer.valueOf(0)});
-+          this.server.a(PacketType.CHAT_MESSAGE, new Object[]{Integer.valueOf(-1), this.playerName + " joined the game"});
++          this.server.broadcastPacketExcept(this, PacketType.SPAWN_PLAYER, new Object[]{Integer.valueOf(this.playerID), this.playerName, Integer.valueOf((var11.xSpawn << 5) + 16), Integer.valueOf((var11.ySpawn << 5) + 16), Integer.valueOf((var11.zSpawn << 5) + 16), Integer.valueOf((int)(var11.rotSpawn * 256.0F / 360.0F)), Integer.valueOf(0)});
++          this.server.broadcastPacket(PacketType.CHAT_MESSAGE, new Object[]{Integer.valueOf(-1), this.playerName + " joined the game"});
 +          Iterator var19 = this.server.b().iterator();
 +  
 +          while (var19.hasNext()) {
@@ -445,3 +520,14 @@
     public final void b(PacketType var1, Object ... var2) {
        if(!this.m) {
           this.n.add(var1);
+@@ -378,8 +433,8 @@
+          var1.printStackTrace();
+       }
+ 
+-      this.server.a(this, PacketType.CHAT_MESSAGE, new Object[]{Integer.valueOf(-1), this.playerName + " left the game"});
+-      MinecraftServer.b(this);
++      this.server.broadcastPacketExcept(this, PacketType.CHAT_MESSAGE, new Object[]{Integer.valueOf(-1), this.playerName + " left the game"});
++      MinecraftServer.disconnectPlayer(this);
+    }
+ 
+ }

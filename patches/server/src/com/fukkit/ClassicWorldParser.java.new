@@ -1,6 +1,7 @@
 package com.fukkit;
 
 import com.mojang.minecraft.level.Level;
+import com.mojang.minecraft.level.LevelIO;
 import com.mojang.minecraft.level.tile.Block;
 
 import java.io.*;
@@ -11,7 +12,6 @@ import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
 public class ClassicWorldParser {
-    private static final int MAX_STRING_LENGTH = 32767;
     private static final Logger logger = API.getLogger(ClassicWorldParser.class.getName());
 
     public static Level loadClassicWorld(File file) throws IOException {
@@ -90,6 +90,21 @@ public class ClassicWorldParser {
         } catch (IOException e) {
             logger.severe("Error saving ClassicWorld file: " + e.getMessage());
             throw e;
+        }
+    }
+
+    public static void convertLevel(String filePath1, String filePath2) throws IOException
+    {
+        File file1 = new File(filePath1);
+        File file2 = new File(filePath2);
+        
+        if (filePath1.endsWith(".cw") && filePath2.endsWith(".dat"))
+        {
+            Level level = loadClassicWorld(file1);
+            LevelIO.save(level, new FileOutputStream(file2));
+        } else if (filePath1.endsWith(".dat") && filePath2.endsWith(".cw"))
+        {
+            
         }
     }
 
