@@ -11,6 +11,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.*;
 import java.util.logging.Logger;
+import java.util.zip.GZIPOutputStream;
 
 public class WorldManager {
     private final MinecraftServer server;
@@ -119,22 +120,49 @@ public class WorldManager {
     }
 
     public void saveWorld(String name, Level level) {
-        if (server.useCWformat) {
-            try {
-                ClassicWorldParser.saveClassicWorld(level, new File(name + ".cw"));
-                logger.info("Saved world in ClassicWorld format: " + name + ".cw");
-            } catch (IOException e) {
-                logger.severe("Failed to save world " + name + " in ClassicWorld format: " + e.getMessage());
+        // Determine the primary and alternative formats
+        boolean useCWFormat = server.useCWformat;
+        File primaryFile = new File(name + (useCWFormat ? ".cw" : "_level.dat"));
+        File alternativeFile = new File(name + (useCWFormat ? "_level.dat" : ".cw"));
+
+        // Attempt to save in the primary format
+        try {
+            if (useCWFormat) {
+                saveWorldAsClassicWorld(level, primaryFile);
+            } else {
+                saveWorldAsDat(level, primaryFile);
             }
-        } else {
+            logger.info("Saved world in primary format: " + primaryFile.getName());
+        } catch (IOException e) {
+            logger.severe("Failed to save world in primary format: " + e.getMessage());
+            logger.info("Attempting to save world in alternative format...");
+
+            // Attempt to save in the alternative format
             try {
-                LevelIO.save(level, new FileOutputStream(name + "_level.dat"));
-                logger.info("Saved world: " + name + "_level.dat");
-            } catch (Exception e) {
-                logger.severe("Failed to save world " + name + " in .dat format: " + e.getMessage());
+                if (useCWFormat) {
+                    saveWorldAsDat(level, alternativeFile);
+                } else {
+                    saveWorldAsClassicWorld(level, alternativeFile);
+                }
+                logger.info("Saved world in alternative format: " + alternativeFile.getName());
+            } catch (IOException ex) {
+                logger.severe("Failed to save world in alternative format: " + ex.getMessage());
             }
         }
     }
+
+    // Helper method to save world as ClassicWorld format
+    private void saveWorldAsClassicWorld(Level level, File file) throws IOException {
+            ClassicWorldParser.saveClassicWorld(level, file);
+    }
+
+    // Helper method to save world as .dat format
+    private void saveWorldAsDat(Level level, File file) throws IOException {
+        try (FileOutputStream fos = new FileOutputStream(file)) {
+            LevelIO.save(level, fos);
+        }
+    }
+
 
     public Level getActiveWorld() {
         return activeWorld;
@@ -288,7 +316,4 @@ public class WorldManager {
             API.getInstance().sendGlobalMessage("Failed to load world: " + worldName);
         }
     }
-
-
-
 }

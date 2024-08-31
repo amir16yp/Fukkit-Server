@@ -104,7 +104,8 @@ public class ClassicWorldParser {
             LevelIO.save(level, new FileOutputStream(file2));
         } else if (filePath1.endsWith(".dat") && filePath2.endsWith(".cw"))
         {
-            
+            Level level = LevelIO.load(new FileInputStream(file1));
+            saveClassicWorld(level, file2);
         }
     }
 
