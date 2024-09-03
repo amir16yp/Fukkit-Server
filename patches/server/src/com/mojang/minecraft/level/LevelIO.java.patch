@@ -1,18 +1,17 @@
 --- a/src/com/mojang/minecraft/level/LevelIO.java
 +++ b/src/com/mojang/minecraft/level/LevelIO.java
-@@ -1,33 +1,18 @@
+@@ -1,33 +1,16 @@
  package com.mojang.minecraft.level;
  
 -import com.mojang.minecraft.level.Level;
 -import com.mojang.minecraft.level.LevelObjectInputStream;
-+import com.fukkit.API;
- import com.mojang.minecraft.server.MinecraftServer;
+-import com.mojang.minecraft.server.MinecraftServer;
 -import java.io.DataInputStream;
 -import java.io.DataOutputStream;
 -import java.io.InputStream;
 -import java.io.ObjectOutputStream;
 -import java.io.OutputStream;
-+
++import com.fukkit.API;
 +import java.io.*;
 +import java.util.logging.Logger;
  import java.util.zip.GZIPInputStream;
@@ -21,13 +20,13 @@
  public final class LevelIO {
  
 -   private MinecraftServer server;
--
++   private static final Logger logger = API.getLogger("LevelIO");
+ 
 -
 -   public LevelIO(MinecraftServer var1) {
 -      this.server = var1;
 -   }
-+   private static final Logger logger = API.getLogger("LevelIO");
- 
+-
 -   public final Level load(InputStream var1) {
 -      if(this.server != null) {
 -         this.server.a("Loading level");
@@ -40,7 +39,7 @@
  
        try {
           DataInputStream var10;
-@@ -63,7 +48,7 @@
+@@ -63,7 +46,7 @@
           }
        } catch (Exception var9) {
           var9.printStackTrace();

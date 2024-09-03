@@ -248,7 +248,7 @@ public class API {
     private void handlePluginsCommand(CommandSender sender, String[] args)
     {
         StringBuilder pluginsInfoBuilder = new StringBuilder();
-        pluginsInfoBuilder.append("Plugins: ");
+        pluginsInfoBuilder.append("Plugins: (");
         for (JavaPlugin plugin : this.pluginManager.getPlugins())
         {
             pluginsInfoBuilder.append(",");
