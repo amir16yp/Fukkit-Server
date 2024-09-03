@@ -243,6 +243,21 @@ public class API {
         this.permissionManager.registerPermissionCommands();
         this.getWorldManager().registerWorldCommand();
         this.registerCommand("plugins", this::handlePluginsCommand, "*");
+        this.registerCommand("pl", this::handlePluginsCommand, "*");
+        this.registerCommand("commands", this::handleListCommandsCommand, "*");
+    }
+
+    private void handleListCommandsCommand(CommandSender sender, String[] args)
+    {
+        StringBuilder commandListBuilder = new StringBuilder();
+        commandListBuilder.append("Commands:");
+        for (String command : customCommands.keySet())
+        {
+            commandListBuilder.append("\n");
+            commandListBuilder.append("/");
+            commandListBuilder.append(command);
+        }
+        sender.sendMessage(commandListBuilder.toString());
     }
 
     private void handlePluginsCommand(CommandSender sender, String[] args)

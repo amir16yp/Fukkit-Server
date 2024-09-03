@@ -23,7 +23,12 @@ public class PermissionManager {
         // Add default op permissions
         opPermissions.add("*"); // Wildcard permission for ops
         reloadPermissions();
-        savePermissions();
+        if (!this.permissionsFile.exists())
+        {
+            addPermission("*", "pluginslist");
+            addPermission("*", "commandslist");
+            savePermissions();
+        }
     }
 
     
