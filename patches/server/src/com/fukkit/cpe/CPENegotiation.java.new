@@ -1,0 +1,121 @@
+package com.fukkit.cpe;
+
+import java.util.*;
+import java.util.logging.Logger;
+
+import com.fukkit.API;
+import com.mojang.minecraft.net.PacketType;
+import com.mojang.net.NetworkHandler;
+
+public class CPENegotiation {
+    private static final Logger logger = API.getLogger(CPENegotiation.class.getName());
+    private static final byte CPE_MAGIC_NUMBER = 0x42;
+    private static final int MAX_EXTENSIONS = 32767;
+
+    private List<Extension> serverSupportedExtensions;
+    private List<Extension> clientSupportedExtensions;
+    private List<Extension> mutuallySupported;
+    private boolean negotiationComplete = false;
+    private int expectedClientExtensionCount = 0;
+    private int receivedClientExtensionCount = 0;
+
+    public CPENegotiation() {
+        this.serverSupportedExtensions = new ArrayList<>();
+        this.clientSupportedExtensions = new ArrayList<>();
+        this.mutuallySupported = new ArrayList<>();
+        addServerSupportedExtension("LongerMessages", 1);
+        // Add other supported extensions here
+    }
+
+    public void addServerSupportedExtension(String name, int version) {
+        serverSupportedExtensions.add(new Extension(name, version));
+    }
+
+    public boolean supportsLongerMessages() {
+        return mutuallySupported.stream()
+            .anyMatch(ext -> ext.name.equals("LongerMessages") && ext.version == 1);
+    }
+
+    public boolean isCPEClient(byte paddingByte) {
+        return paddingByte == CPE_MAGIC_NUMBER;
+    }
+
+    public void negotiateAsServer(NetworkHandler handler) {
+        logger.info("Starting CPE negotiation as server");
+        
+        // Send EXT_INFO packet
+        String appName = "FukkitServer";
+        short extensionCount = (short) serverSupportedExtensions.size();
+        handler.send(PacketType.EXT_INFO, appName, extensionCount);
+        logger.info("Sent EXT_INFO packet - AppName: " + appName + ", ExtensionCount: " + extensionCount);
+
+        // Send EXT_ENTRY packets
+        for (Extension ext : serverSupportedExtensions) {
+            handler.send(PacketType.EXT_ENTRY, ext.name, ext.version);
+            logger.info("Sent EXT_ENTRY packet - Name: " + ext.name + ", Version: " + ext.version);
+        }
+        
+        logger.info("Finished sending server extensions, waiting for client response");
+    }
+
+    public void handleClientPacket(PacketType packetType, Object[] data) {
+        logger.info("Received client packet: " + packetType);
+        if (packetType == PacketType.EXT_INFO) {
+            String clientAppName = (String) data[0];
+            expectedClientExtensionCount = (Short) data[1];
+            logger.info("Received EXT_INFO from client " + clientAppName + " with " + expectedClientExtensionCount + " extensions");
+            receivedClientExtensionCount = 0;
+            clientSupportedExtensions.clear();
+        } else if (packetType == PacketType.EXT_ENTRY) {
+            String extName = (String) data[0];
+            int extVersion = (Integer) data[1];
+            logger.info("Received EXT_ENTRY: " + extName + " (version " + extVersion + ")");
+            clientSupportedExtensions.add(new Extension(extName, extVersion));
+            receivedClientExtensionCount++;
+            if (receivedClientExtensionCount == expectedClientExtensionCount) {
+                findMutuallySupported();
+                negotiationComplete = true;
+                logger.info("CPE negotiation complete. Mutually supported extensions: " + mutuallySupported.size());
+            } else {
+                logger.info("Waiting for more EXT_ENTRY packets. Received " + receivedClientExtensionCount + " out of " + expectedClientExtensionCount);
+            }
+        } else {
+            logger.warning("Unexpected packet type during CPE negotiation: " + packetType.toString());
+        }
+    }
+
+    private void findMutuallySupported() {
+        mutuallySupported.clear();
+        for (Extension serverExt : serverSupportedExtensions) {
+            for (Extension clientExt : clientSupportedExtensions) {
+                if (serverExt.name.equals(clientExt.name) && serverExt.version == clientExt.version) {
+                    mutuallySupported.add(serverExt);
+                    break;
+                }
+            }
+        }
+    }
+
+    public boolean isNegotiationComplete() {
+        return negotiationComplete;
+    }
+
+    public List<Extension> getMutuallySupported() {
+        return mutuallySupported;
+    }
+
+    public static class Extension {
+        String name;
+        int version;
+
+        Extension(String name, int version) {
+            this.name = name;
+            this.version = version;
+        }
+
+        @Override
+        public String toString() {
+            return name + " (v" + version + ")";
+        }
+    }
+}
