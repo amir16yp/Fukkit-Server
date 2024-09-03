@@ -1,6 +1,12 @@
 --- a/src/com/mojang/minecraft/level/generator/LevelGenerator.java
 +++ b/src/com/mojang/minecraft/level/generator/LevelGenerator.java
-@@ -6,33 +6,66 @@
+@@ -1,38 +1,82 @@
+ package com.mojang.minecraft.level.generator;
+ 
++import com.fukkit.Location;
+ import com.mojang.minecraft.level.Level;
+ import com.mojang.minecraft.level.generator.noise.CombinedNoise;
+ import com.mojang.minecraft.level.generator.noise.OctaveNoise;
  import com.mojang.minecraft.level.tile.Block;
  import com.mojang.minecraft.server.MinecraftServer;
  import com.mojang.util.MathHelper;
@@ -27,6 +33,16 @@
 +   public int waterLevel = 32;
 +   private ArrayList<Integer> h = new ArrayList<>();
 +
++   public void setWaterLevel(int waterLevel)
++   {
++      this.waterLevel = waterLevel;
++   }
++
++   public int getWaterLevel()
++   {
++      return this.waterLevel;
++   }
++
 +   public int getWidth()
 +   {
 +      return width;
@@ -41,7 +57,7 @@
 +   {
 +      return height;
 +   }
-+
+ 
 +   public void setHeight(int h)
 +   {
 +      this.height = h;
@@ -51,7 +67,7 @@
 +   {
 +      this.depth = d;
 +   }
- 
++
 +   public void setWidth(int w)
 +   {
 +      this.width = w;
@@ -82,7 +98,7 @@
        LevelGenerator var41 = this;
        CombinedNoise var5 = new CombinedNoise(new OctaveNoise(this.random, 8), new OctaveNoise(this.random, 8));
        CombinedNoise var6 = new CombinedNoise(new OctaveNoise(this.random, 8), new OctaveNoise(this.random, 8));
-@@ -59,7 +92,7 @@
+@@ -59,7 +103,7 @@
           }
        }
  
@@ -91,7 +107,7 @@
        int[] var42 = var8;
        var41 = this;
        var6 = new CombinedNoise(new OctaveNoise(this.random, 8), new OctaveNoise(this.random, 8));
-@@ -79,7 +112,7 @@
+@@ -79,7 +123,7 @@
           }
        }
  
@@ -100,7 +116,7 @@
        var42 = var8;
        var41 = this;
        int var45 = this.width;
-@@ -125,7 +158,7 @@
+@@ -125,7 +169,7 @@
           }
        }
  
@@ -109,7 +125,7 @@
        boolean var46 = true;
        boolean var43 = false;
        var41 = this;
-@@ -183,7 +216,7 @@
+@@ -183,7 +227,7 @@
        this.populateOre(Block.COAL_ORE.id, 90, 1, 4);
        this.populateOre(Block.IRON_ORE.id, 70, 2, 4);
        this.populateOre(Block.GOLD_ORE.id, 50, 3, 4);
@@ -118,7 +134,7 @@
        var41 = this;
        var51 = Block.STATIONARY_WATER.id;
  
-@@ -208,7 +241,7 @@
+@@ -208,7 +252,7 @@
           }
        }
  
@@ -127,7 +143,7 @@
        var41 = this;
        var45 = this.width * this.depth * this.height / 20000;
  
-@@ -221,7 +254,7 @@
+@@ -221,7 +265,7 @@
           }
        }
  
@@ -136,7 +152,7 @@
        var42 = var8;
        var41 = this;
        var45 = this.width;
-@@ -251,7 +284,7 @@
+@@ -251,7 +295,7 @@
           }
        }
  
@@ -145,7 +161,7 @@
        var42 = var8;
        var41 = this;
        var45 = this.width;
-@@ -405,8 +438,8 @@
+@@ -405,8 +449,8 @@
  
     private long flood(int var1, int var2, int var3, int var4, int var5) {
        byte var20 = (byte)var5;
@@ -156,7 +172,7 @@
        int var7 = 1;
  
        int var8;
-@@ -421,16 +454,16 @@
+@@ -421,16 +465,16 @@
        int var9 = this.depth - 1;
        int var10 = this.width - 1;
        int var22 = var6 + 1;
@@ -177,7 +193,7 @@
           }
  
           var3 = var2 >> var7 & var9;
-@@ -462,13 +495,8 @@
+@@ -462,13 +506,8 @@
              boolean var19;
              if(var3 > 0) {
                 if((var19 = this.blocks[var2 - this.width] == 0) && !var23) {
@@ -193,7 +209,7 @@
                 }
  
                 var23 = var19;
-@@ -476,13 +504,8 @@
+@@ -476,13 +515,8 @@
  
              if(var3 < this.depth - 1) {
                 if((var19 = this.blocks[var2 + this.width] == 0) && !var24) {
@@ -209,7 +225,7 @@
                 }
  
                 var24 = var19;
-@@ -495,13 +518,8 @@
+@@ -495,13 +529,8 @@
                 }
  
                 if((var19 = var25 == 0) && !var18) {
@@ -225,10 +241,157 @@
                 }
  
                 var18 = var19;
-@@ -513,4 +531,4 @@
+@@ -513,4 +542,151 @@
  
        return var11;
     }
 -}
++
++    /**
++     * Gets the block type at specific coordinates.
++     *
++     * @param x X-coordinate.
++     * @param y Y-coordinate.
++     * @param z Z-coordinate.
++     * @return Block type ID at the specified coordinates.
++     */
++    protected int getBlockType(int x, int y, int z) {
++      if (!isInBounds(x, y, z)) {
++          throw new IndexOutOfBoundsException("Coordinates out of bounds.");
++      }
++      return blocks[(y * depth + z) * width + x];
++  }
++
++  /**
++   * Sets the block type at specific coordinates.
++   *
++   * @param x X-coordinate.
++   * @param y Y-coordinate.
++   * @param z Z-coordinate.
++   * @param blockId Block type ID to set.
++   */
++  protected void setBlockType(int x, int y, int z, int blockId) {
++      if (!isInBounds(x, y, z)) {
++          throw new IndexOutOfBoundsException("Coordinates out of bounds.");
++      }
++      blocks[(y * depth + z) * width + x] = (byte) blockId;
++  }
++
++  /**
++   * Checks if the coordinates are within bounds of the level.
++   *
++   * @param x X-coordinate.
++   * @param y Y-coordinate.
++   * @param z Z-coordinate.
++   * @return true if within bounds, false otherwise.
++   */
++  protected boolean isInBounds(int x, int y, int z) {
++      return x >= 0 && x < width && y >= 0 && y < height && z >= 0 && z < depth;
++  }
++
++  /**
++   * Gets the block type at a specific index in the blocks array.
++   *
++   * @param index Index in the blocks array.
++   * @return Block type ID at the specified index.
++   */
++  protected int getBlockTypeAtIndex(byte index) {
++      if (index < 0 || index >= blocks.length) {
++          throw new IndexOutOfBoundsException("Index out of bounds.");
++      }
++      return blocks[index];
++  }
++
++  /**
++   * Sets the block type at a specific index in the blocks array.
++   *
++   * @param index Index in the blocks array.
++   * @param blockId Block type ID to set.
++   */
++  protected void setBlockTypeAtIndex(int index, byte blockId) {
++      if (index < 0 || index >= blocks.length) {
++          throw new IndexOutOfBoundsException("Index out of bounds.");
++      }
++      blocks[index] = (byte) blockId;
++  }
++
++  /**
++   * Clears a rectangular region in the level.
++   *
++   * @param x1 Start X-coordinate.
++   * @param y1 Start Y-coordinate.
++   * @param z1 Start Z-coordinate.
++   * @param x2 End X-coordinate.
++   * @param y2 End Y-coordinate.
++   * @param z2 End Z-coordinate.
++   * @param blockId Block type to set in the region.
++   */
++  protected void clearRegion(int x1, int y1, int z1, int x2, int y2, int z2, byte blockId) {
++      for (int x = x1; x <= x2; x++) {
++          for (int y = y1; y <= y2; y++) {
++              for (int z = z1; z <= z2; z++) {
++                  setBlockType(x, y, z, blockId);
++              }
++          }
++      }
++  }
++
++  /**
++   * Fills a rectangular region with the specified block type.
++   *
++   * @param x1 Start X-coordinate.
++   * @param y1 Start Y-coordinate.
++   * @param z1 Start Z-coordinate.
++   * @param x2 End X-coordinate.
++   * @param y2 End Y-coordinate.
++   * @param z2 End Z-coordinate.
++   * @param blockId Block type to fill the region with.
++   */
++  protected void fillRegion(int x1, int y1, int z1, int x2, int y2, int z2, byte blockId) {
++      for (int x = x1; x <= x2; x++) {
++          for (int y = y1; y <= y2; y++) {
++              for (int z = z1; z <= z2; z++) {
++                  setBlockType(x, y, z, blockId);
++              }
++          }
++      }
++  }
++
++  protected void fillRegion(Location loc1, Location loc2, byte blockId) {
++   this.fillRegion(loc1.getX(), loc1.getY(), loc1.getZ(), loc2.getX(), loc2.getY(), loc2.getZ(), blockId);
++  }
++
++  /**
++   * Creates a horizontal layer at a specific Y-coordinate.
++   *
++   * @param y Y-coordinate.
++   * @param blockId Block type to set.
++   */
++  protected void createHorizontalLayer(int y, byte blockId) {
++      if (y < 0 || y >= height) {
++          throw new IndexOutOfBoundsException("Y-coordinate out of bounds.");
++      }
++      for (int x = 0; x < width; x++) {
++          for (int z = 0; z < depth; z++) {
++              setBlockType(x, y, z, blockId);
++          }
++      }
++  }
++
++  /**
++   * Creates a vertical column at a specific X and Z-coordinate.
++   *
++   * @param x X-coordinate.
++   * @param z Z-coordinate.
++   * @param blockId Block type to set.
++   */
++  protected void createVerticalColumn(int x, int z, byte blockId) {
++      if (!isInBounds(x, 0, z)) {
++          throw new IndexOutOfBoundsException("Coordinates out of bounds.");
++      }
++      for (int y = 0; y < height; y++) {
++          setBlockType(x, y, z, blockId);
++      }
++  }
 +}
 \ No newline at end of file

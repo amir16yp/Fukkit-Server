@@ -1,6 +1,6 @@
 --- a/src/com/mojang/minecraft/server/NetworkManager.java
 +++ b/src/com/mojang/minecraft/server/NetworkManager.java
-@@ -1,17 +1,24 @@
+@@ -1,17 +1,23 @@
  package com.mojang.minecraft.server;
  
 +import com.fukkit.API;
@@ -17,8 +17,8 @@
 -import com.mojang.minecraft.server.MinecraftServer;
  import com.mojang.net.NetworkHandler;
  import com.mojang.util.MathHelper;
+-import java.io.IOException;
 +
- import java.io.IOException;
  import java.util.ArrayList;
 +import java.util.HashMap;
  import java.util.Iterator;
@@ -27,7 +27,7 @@
  import java.util.logging.Logger;
  
  public final class NetworkManager {
-@@ -37,7 +44,11 @@
+@@ -37,7 +43,11 @@
     private int t = 0;
     private volatile byte[] bytes = null;
     public boolean i = false;
@@ -40,7 +40,7 @@
  
     public NetworkManager(MinecraftServer var1, NetworkHandler var2, int var3) {
        this.server = var1;
-@@ -49,135 +60,234 @@
+@@ -49,135 +59,253 @@
        this.xSpawn = (var4.xSpawn << 5) + 16;
        this.ySpawn = (var4.ySpawn << 5) + 16;
        this.zSpawn = (var4.zSpawn << 5) + 16;
@@ -77,7 +77,7 @@
 +          logger.warning("Received packet from kicked player: " + this);
 +          return;
 +      }
-+      logger.info("Handling packet: " + var1.toString());
++      //logger.info("Handling packet: " + var1.toString());
  
 -                  } else {
 -                     if(var1 == PacketType.POSITION_ROTATION) {
@@ -177,17 +177,6 @@
 +      if (this.server.playerManager2.containsPlayer(username)) {
 +         this.kickPlayer("You're banned!");
 +         return;
-+      }
-+
-+      if (this.server.adminSlot && !this.server.playerManager1.containsPlayer(username)
-+            && this.server.getAvailableSlots() < 1) {
-+         this.kickPlayer("The server is full!");
-+         return;
-+      }
-+
-+      NetworkManager existingPlayer = this.server.c(username);
-+      if (existingPlayer != null) {
-+         existingPlayer.kickPlayer("You logged in from another computer.");
        }
 -   }
  
@@ -198,6 +187,17 @@
 -         this.timeTillTalk = 760;
 -         this.b(PacketType.CHAT_MESSAGE, new Object[]{Integer.valueOf(-1), "Too much chatter! Muted for eight seconds."});
 -         logger.info("Muting " + this.playerName + " for chatting too much");
++      if (this.server.adminSlot && !this.server.playerManager1.containsPlayer(username)
++            && this.server.getAvailableSlots() < 1) {
++         this.kickPlayer("The server is full!");
++         return;
++      }
++
++      NetworkManager existingPlayer = this.server.c(username);
++      if (existingPlayer != null) {
++         existingPlayer.kickPlayer("You logged in from another computer.");
++      }
++
 +
 +      logger.info(this + " logged in as " + username);
 +      this.l = true;
@@ -315,33 +315,52 @@
 +      logger.info("Welcome packets sent to " + this);
 +  }
 +
-+  private void handleChatMessage(Object[] var2) {
-+   int playerID = ((Byte) var2[0]).intValue();
-+   String message = (String) var2[1];
++  private static final int MAX_MESSAGE_LENGTH = 64; // Define the maximum length for each message part
 +
-+   if (supportsLongerMessages) {
-+       if (playerID == 0) {
-+           // This is a complete message or the last part of a partial message
-+           if (partialMessages.containsKey(this.playerID)) {
-+               // This is the last part of a partial message
-+               StringBuilder fullMessage = partialMessages.get(this.playerID);
-+               fullMessage.append(message);  // Strip trailing whitespace from the last part
-+               processCompleteMessage(fullMessage.toString());
-+               partialMessages.remove(this.playerID);
-+           } else {
-+               // This is a complete message
-+               processCompleteMessage(message);
-+           }
-+       } else {
-+           // This is a part of a partial message
-+           StringBuilder partialMessage = partialMessages.computeIfAbsent(this.playerID, k -> new StringBuilder());
-+           partialMessage.append(message);  // Preserve all whitespace for partial messages
-+       }
-+   } else {
-+       // Handle regular messages as before
-+       processCompleteMessage(message);
-+   }
-+}
++  private void handleChatMessage(Object[] var2) {
++      int playerID = ((Byte) var2[0]).intValue();
++      String message = (String) var2[1];
++  
++      if (message.startsWith("/")) {
++          // Process commands
++          API.getInstance().processPlayerCommand(message.substring(1), new Player(this));
++          return;
++      }
++  
++      if (supportsLongerMessages) {
++          if (message.length() > MAX_MESSAGE_LENGTH) {
++              // Split message into parts if it exceeds MAX_MESSAGE_LENGTH
++              int numParts = (int) Math.ceil((double) message.length() / MAX_MESSAGE_LENGTH);
++              for (int i = 0; i < numParts; i++) {
++                  int start = i * MAX_MESSAGE_LENGTH;
++                  int end = Math.min(start + MAX_MESSAGE_LENGTH, message.length());
++                  String messagePart = message.substring(start, end);
++                  
++                  // Handle each part as a separate message
++                  processMessagePart(playerID, messagePart);
++              }
++          } else {
++              // Process the complete message directly if it's within the length limit
++              processCompleteMessage(message);
++          }
++      } else {
++          // Handle regular messages as before
++          processCompleteMessage(message);
++      }
++  }
++  
++  private void processMessagePart(int playerID, String messagePart) {
++      // Assuming that you need to handle each part similarly to the complete message
++      if (playerID == 0) {
++          // This is a complete message or the last part of a partial message
++          processCompleteMessage(messagePart);
++      } else {
++          // This is a part of a partial message
++          StringBuilder partialMessage = partialMessages.computeIfAbsent(playerID, k -> new StringBuilder());
++          partialMessage.append(messagePart);
++      }
++  }
++  
 +
 +private void processCompleteMessage(String message) {
 +   // Process the complete message here
@@ -373,7 +392,7 @@
     }
  
     public final void a(byte[] var1) {
-@@ -185,22 +295,22 @@
+@@ -185,22 +313,22 @@
     }
  
     public final void a() {
@@ -402,7 +421,7 @@
              byte var3;
              byte var4;
              short var5;
-@@ -210,110 +320,171 @@
+@@ -210,110 +338,171 @@
              short var10002;
              short var10003;
              byte var10004;
@@ -471,7 +490,7 @@
 +                        Location placeLocation = Location.fromTileCoordinates(var13, var6, var5);
 +                        Block existingBlock = Block.blocks[var7.getTile(var13, var6, var5)];
 +                        Block newBlock = Block.blocks[var3];
-+                        // Check if the block can be placed
++                        // Check if the block can be place
 +                        if (existingBlock == null || existingBlock == Block.WATER
 +                              || existingBlock == Block.STATIONARY_WATER
 +                              || existingBlock == Block.LAVA || existingBlock == Block.STATIONARY_LAVA) {
@@ -645,7 +664,7 @@
           Level var11 = this.server.mainLevel;
           byte[] var15 = new byte[1024];
           int var20 = 0;
-@@ -321,37 +492,50 @@
+@@ -321,37 +510,50 @@
           this.networkHandler.send(PacketType.LEVEL_INITIALIZE, new Object[0]);
  
           int var17;
@@ -709,7 +728,7 @@
              this.b(var14, var2);
           }
  
-@@ -360,8 +544,8 @@
+@@ -360,8 +562,8 @@
        }
     }
  
@@ -720,7 +739,7 @@
           this.n.add(var1);
           this.n.add(var2);
        } else {
-@@ -370,16 +554,13 @@
+@@ -370,16 +572,13 @@
     }
  
     public final void a(Exception var1) {

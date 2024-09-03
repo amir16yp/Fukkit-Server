@@ -1,6 +1,6 @@
 --- a/src/com/mojang/minecraft/server/MinecraftServer.java
 +++ b/src/com/mojang/minecraft/server/MinecraftServer.java
-@@ -1,43 +1,28 @@
+@@ -1,43 +1,26 @@
  package com.mojang.minecraft.server;
  
 -import com.mojang.minecraft.level.LevelIO;
@@ -8,8 +8,6 @@
 +import com.fukkit.API;
 +import com.fukkit.Scheduler;
 +import com.fukkit.WorldManager;
-+import com.mojang.minecraft.level.Level;
-+import com.mojang.minecraft.level.tile.Block;
  import com.mojang.minecraft.net.PacketType;
 -import com.mojang.minecraft.server.ConsoleInput;
 -import com.mojang.minecraft.server.HeartbeatManager;
@@ -54,7 +52,7 @@
     static DateFormat dateFormat = new SimpleDateFormat("HH:mm:ss");
     private BindTo bindTo;
     private Map m = new HashMap();
-@@ -51,7 +36,7 @@
+@@ -51,7 +34,7 @@
     public String MOTD;
     private int port;
     public boolean adminSlot;
@@ -63,7 +61,7 @@
     public PlayerManager playerManager1 = new PlayerManager("Admins", new File("admins.txt"));
     public PlayerManager playerManager2 = new PlayerManager("Banned", new File("banned.txt"));
     private PlayerManager playerManager3 = new PlayerManager("Banned (IP)", new File("banned-ip.txt"));
-@@ -63,13 +48,30 @@
+@@ -63,13 +46,30 @@
     public boolean verifyNames;
     private boolean growTrees;
     private int maxConnections;
@@ -96,7 +94,11 @@
        try {
           this.properties.load(new FileReader("server.properties"));
        } catch (Exception var4) {
-@@ -88,11 +90,12 @@
+@@ -85,14 +85,16 @@
+          this.verifyNames = Boolean.parseBoolean(this.properties.getProperty("verify-names", "true"));
+          this.growTrees = Boolean.parseBoolean(this.properties.getProperty("grow-trees", "false"));
+          this.adminSlot = Boolean.parseBoolean(this.properties.getProperty("admin-slot", "false"));
++         boolean allowFlowingBlocks = Boolean.parseBoolean(this.properties.getProperty("allow-flowing", "true"));
           if(this.maxPlayers < 1) {
              this.maxPlayers = 1;
           }
@@ -114,11 +116,11 @@
           this.maxConnections = Integer.parseInt(this.properties.getProperty("max-connections", "3"));
           this.properties.setProperty("server-name", this.serverName);
           this.properties.setProperty("motd", this.MOTD);
-@@ -103,6 +106,11 @@
+@@ -103,6 +105,11 @@
           this.properties.setProperty("max-connections", "3");
           this.properties.setProperty("grow-trees", "" + this.growTrees);
           this.properties.setProperty("admin-slot", "" + this.adminSlot);
-+
++         this.properties.setProperty("allow-flowing", String.valueOf(allowFlowingBlocks));
 +         // Set default world name to "world" if not specified
 +         String mainWorldName = this.properties.getProperty("world-name", "world");
 +         this.properties.setProperty("world-name", mainWorldName);
@@ -126,7 +128,7 @@
        } catch (Exception var3) {
           var3.printStackTrace();
           logger.warning("server.properties is broken! Delete it or fix it!");
-@@ -125,18 +133,30 @@
+@@ -125,18 +132,30 @@
           logger.warning("###########################################################");
        }
  
@@ -150,7 +152,8 @@
 +
        this.networkManager = new NetworkManager[this.maxPlayers];
        this.bindTo = new BindTo(this.port, this);
-       (new ConsoleInput(this)).start();
+-      (new ConsoleInput(this)).start();
++      (new ConsoleInput()).start();
     }
  
 -   public final void a(NetworkHandler var1) {
@@ -158,7 +161,7 @@
        NetworkManager var2;
        if((var2 = (NetworkManager)this.m.get(var1)) != null) {
           this.playerManager4.removePlayer(var2.playerName);
-@@ -147,7 +167,7 @@
+@@ -147,7 +166,7 @@
              this.networkManager[var2.playerID] = null;
           }
  
@@ -167,7 +170,7 @@
        }
  
     }
-@@ -156,15 +176,15 @@
+@@ -156,15 +175,15 @@
        this.o.add(new UNKNOWN0(var1, 100));
     }
  
@@ -186,7 +189,7 @@
        for(int var3 = 0; var3 < this.n.size(); ++var3) {
           try {
              ((NetworkManager)this.n.get(var3)).b(var1, var2);
-@@ -175,7 +195,7 @@
+@@ -175,7 +194,7 @@
  
     }
  
@@ -195,7 +198,7 @@
        for(int var4 = 0; var4 < this.n.size(); ++var4) {
           if(this.n.get(var4) != var1) {
              try {
-@@ -190,61 +210,77 @@
+@@ -190,61 +209,77 @@
  
     public void run() {
        logger.info("Now accepting input on " + this.port);
@@ -315,7 +318,7 @@
     private static String a(Map var0) {
        try {
           String var1 = "";
-@@ -264,7 +300,7 @@
+@@ -264,7 +299,7 @@
        }
     }
  
@@ -324,7 +327,7 @@
        Iterator var1 = this.n.iterator();
  
        while(var1.hasNext()) {
-@@ -281,7 +317,7 @@
+@@ -281,7 +316,7 @@
  
        for(int var9 = 0; var9 < this.o.size(); ++var9) {
           UNKNOWN0 var10 = (UNKNOWN0)this.o.get(var9);
@@ -333,7 +336,7 @@
  
           try {
              NetworkHandler var3 = var10.networkHandler;
-@@ -316,19 +352,19 @@
+@@ -316,19 +351,19 @@
  
     }
  
@@ -357,7 +360,7 @@
           }
        }
  
-@@ -337,7 +373,7 @@
+@@ -337,7 +372,7 @@
  
           SocketChannel var14;
           while((var14 = var13.serverChannel.accept()) != null) {
@@ -366,7 +369,7 @@
                 var14.configureBlocking(false);
                 NetworkHandler var2 = new NetworkHandler(var14);
                 var13.c.add(var2);
-@@ -363,7 +399,7 @@
+@@ -363,7 +398,7 @@
                       var4.b(var3);
                    } else {
                       int var22;
@@ -375,7 +378,7 @@
                          var3.send(PacketType.DISCONNECT, new Object[]{"The server is full!"});
                          logger.info(var3.address + " tried to connect, but failed because the server was full.");
                          var4.b(var3);
-@@ -396,10 +432,17 @@
+@@ -396,10 +431,17 @@
                    var19.in.flip();
                    byte var20 = var19.in.get(0);
                    PacketType var24;
@@ -395,7 +398,7 @@
                    if(var19.in.remaining() < var24.length + 1) {
                       var19.in.compact();
                       break;
-@@ -412,7 +455,7 @@
+@@ -412,7 +454,7 @@
                       var21[var7] = var19.receive(var24.params[var7]);
                    }
  
@@ -404,7 +407,7 @@
                    if(!var19.connected) {
                       break;
                    }
-@@ -436,7 +479,7 @@
+@@ -436,7 +478,7 @@
              try {
                 if(!var15.connected) {
                    var15.close();
@@ -413,7 +416,7 @@
                    var13.c.remove(var17--);
                 }
              } catch (Exception var8) {
-@@ -449,7 +492,7 @@
+@@ -449,7 +491,7 @@
        }
     }
  
@@ -422,7 +425,7 @@
        while(var2.startsWith("/")) {
           var2 = var2.substring(1);
        }
-@@ -489,12 +532,12 @@
+@@ -489,12 +531,12 @@
              }
           } else {
              if(var3[0].toLowerCase().equals("broadcast") && var3.length > 1) {
@@ -437,7 +440,7 @@
                 return;
              }
  
-@@ -519,11 +562,11 @@
+@@ -519,11 +561,11 @@
        }
     }
  
@@ -452,7 +455,7 @@
        int var1 = 0;
  
        for(int var2 = 0; var2 < this.maxPlayers; ++var2) {
-@@ -535,7 +578,7 @@
+@@ -535,7 +577,7 @@
        return var1;
     }
  
@@ -461,7 +464,7 @@
        for(int var1 = 0; var1 < this.maxPlayers; ++var1) {
           if(this.networkManager[var1] == null) {
              return var1;
-@@ -557,17 +600,17 @@
+@@ -557,17 +599,17 @@
           NetworkManager var4;
           if((var4 = (NetworkManager)var3.next()).playerName.equalsIgnoreCase(var1)) {
              var2 = true;
@@ -482,7 +485,7 @@
        this.playerManager2.addPlayer(var1);
        boolean var2 = false;
        Iterator var3 = this.n.iterator();
-@@ -576,17 +619,17 @@
+@@ -576,17 +618,17 @@
           NetworkManager var4;
           if((var4 = (NetworkManager)var3.next()).playerName.equalsIgnoreCase(var1)) {
              var2 = true;
@@ -503,7 +506,7 @@
        this.playerManager1.addPlayer(var1);
        Iterator var3 = this.n.iterator();
  
-@@ -600,7 +643,7 @@
+@@ -600,7 +642,7 @@
  
     }
  
@@ -512,7 +515,7 @@
        this.playerManager1.removePlayer(var1);
        Iterator var3 = this.n.iterator();
  
-@@ -635,7 +678,7 @@
+@@ -635,7 +677,7 @@
  
           var6 = var5.networkHandler;
           this.playerManager3.addPlayer(var5.networkHandler.address);
@@ -521,7 +524,7 @@
           if(var3 == "") {
              var3 = var3 + ", ";
           }
-@@ -645,7 +688,7 @@
+@@ -645,7 +687,7 @@
        }
  
        if(var2) {
@@ -530,7 +533,7 @@
        }
  
     }
-@@ -663,44 +706,44 @@
+@@ -663,44 +705,44 @@
        return var2;
     }
  
@@ -603,7 +606,7 @@
     // $FF: synthetic method
     static List a(MinecraftServer var0) {
        return var0.v;
-@@ -738,4 +781,9 @@
+@@ -738,4 +780,9 @@
           logger.warning("Failed to open file server.log for writing: " + var5);
        }
     }

@@ -1,5 +1,11 @@
 package com.fukkit;
 
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -8,17 +14,70 @@ import java.util.Set;
 public class PermissionManager {
     private final Map<String, Set<String>> playerPermissions;
     private final Set<String> opPermissions;
+    private final File permissionsFile;
 
     public PermissionManager() {
         this.playerPermissions = new HashMap<>();
         this.opPermissions = new HashSet<>();
-
+        this.permissionsFile = new File("permissions.txt");
         // Add default op permissions
         opPermissions.add("*"); // Wildcard permission for ops
+        reloadPermissions();
+        savePermissions();
+    }
+
+    
+    private void savePermissions() {
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter(permissionsFile))) {
+            // Write player permissions
+            for (Map.Entry<String, Set<String>> entry : playerPermissions.entrySet()) {
+                String playerName = entry.getKey();
+                for (String permission : entry.getValue()) {
+                    writer.write("player:" + playerName + ":" + permission);
+                    writer.newLine();
+                }
+            }
+
+            // Write op permissions
+            for (String opPermission : opPermissions) {
+                writer.write("op:" + opPermission);
+                writer.newLine();
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void reloadPermissions() {
+        if (!permissionsFile.exists()) {
+            return; // File does not exist; nothing to load
+        }
+
+        try (BufferedReader reader = new BufferedReader(new FileReader(permissionsFile))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                String[] parts = line.split(":", 3);
+                if (parts.length < 2) {
+                    continue; // Skip malformed lines
+                }
+                String type = parts[0];
+                if ("player".equals(type)) {
+                    String playerName = parts[1];
+                    String permission = parts[2];
+                    addPermission(playerName, permission);
+                } else if ("op".equals(type)) {
+                    String permission = parts[1];
+                    opPermissions.add(permission);
+                }
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     public void addPermission(String playerName, String permission) {
         playerPermissions.computeIfAbsent(playerName, k -> new HashSet<>()).add(permission);
+        savePermissions();
     }
 
     public void removePermission(String playerName, String permission) {
@@ -26,6 +85,7 @@ public class PermissionManager {
         if (permissions != null) {
             permissions.remove(permission);
         }
+        savePermissions();
     }
 
 
@@ -115,10 +175,12 @@ public class PermissionManager {
 
     public void addOpPermission(String permission) {
         opPermissions.add(permission);
+        savePermissions();
     }
 
     public void removeOpPermission(String permission) {
         opPermissions.remove(permission);
+        savePermissions();
     }
 
     public boolean isOpPermission(String permission) {

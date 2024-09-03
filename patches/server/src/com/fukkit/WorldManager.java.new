@@ -181,7 +181,7 @@ public class WorldManager {
     }
 
 
-    public void initializeWorldCommand() {
+    public void registerWorldCommand() {
         API.getInstance().registerCommand("world", (sender, args) -> {
             if (args.length < 1) {
                 sender.sendMessage("Usage: /world <create|load|switch|list|delete> [worldname] [seed] [generator]");

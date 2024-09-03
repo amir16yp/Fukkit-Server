@@ -1,7 +1,9 @@
 --- a/src/com/mojang/minecraft/level/tile/LiquidBlock.java
 +++ b/src/com/mojang/minecraft/level/tile/LiquidBlock.java
-@@ -2,8 +2,8 @@
+@@ -1,9 +1,10 @@
+ package com.mojang.minecraft.level.tile;
  
++import com.fukkit.API;
  import com.mojang.minecraft.level.Level;
  import com.mojang.minecraft.level.liquid.LiquidType;
 -import com.mojang.minecraft.level.tile.Block;
@@ -10,7 +12,22 @@
  import java.util.Random;
  
  public class LiquidBlock extends Block {
-@@ -43,7 +43,6 @@
+@@ -37,13 +38,21 @@
+       var1.addToTickNextTick(var2, var3, var4, this.movingId);
+    }
+ 
++   public static boolean isFlowingAllowed()
++   {
++      return Boolean.parseBoolean(API.getInstance().getServer().getProperties().getProperty("allow-flowing", "true"));
++   }
++
+    public void update(Level var1, int var2, int var3, int var4, Random var5) {
++      if (!isFlowingAllowed())
++      {
++         return;
++      }
+       boolean var7 = false;
+       var4 = var4;
        var3 = var3;
        var2 = var2;
        var1 = var1;

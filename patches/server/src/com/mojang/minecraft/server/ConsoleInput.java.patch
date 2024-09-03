@@ -1,6 +1,6 @@
 --- a/src/com/mojang/minecraft/server/ConsoleInput.java
 +++ b/src/com/mojang/minecraft/server/ConsoleInput.java
-@@ -1,36 +1,35 @@
+@@ -1,36 +1,32 @@
  package com.mojang.minecraft.server;
  
 -import com.mojang.minecraft.server.MinecraftServer;
@@ -13,14 +13,13 @@
  final class ConsoleInput extends Thread {
  
 -   // $FF: synthetic field
-    private MinecraftServer server;
- 
+-   private MinecraftServer server;
+-
 -
 -   ConsoleInput(MinecraftServer var1) {
 -      this.server = var1;
-+   ConsoleInput(MinecraftServer server) {
++   ConsoleInput() {
        super();
-+      this.server = server;
     }
  
     public final void run() {

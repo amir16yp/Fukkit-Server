@@ -12,7 +12,7 @@ import java.util.logging.Logger;
 public class API {
     private static API instance;
     private final MinecraftServer server;
-    private final Map<String, BiConsumer<CommandSender, String[]>> customCommands;
+    private static final Map<String, BiConsumer<CommandSender, String[]>> customCommands =  new HashMap<>();;
     private PluginManager pluginManager;
     private static Map<String, PrefixedLogger> pluginLoggers = new HashMap<>();
     private PermissionManager permissionManager;
@@ -22,8 +22,8 @@ public class API {
     public API(MinecraftServer server)
     {
         this.server = server;
-        this.customCommands = new HashMap<>();
         this.permissionManager = new PermissionManager();
+        this.pluginManager = new PluginManager(server);
 
     }
 
@@ -91,9 +91,10 @@ public class API {
     public static void initialize(MinecraftServer server) {
         if (instance == null) {
             instance = new API(server);
-            server.getWorldManager().initializeWorldCommand();
-            instance.permissionManager.registerPermissionCommands();
-            instance.pluginManager = new PluginManager(server);
+            server.getWorldManager().registerWorldCommand();
+            //instance.permissionManager.registerPermissionCommands();
+            //instance.pluginManager = new PluginManager(server);
+            instance.registerDefaultCommands();
             instance.loadPlugins(); // Load plugins during initialization
             instance.enablePlugins(); // Enable plugins after loading
         }
@@ -186,7 +187,7 @@ public class API {
     }
 
     public void processConsoleInput(String input) {
-        this.getLogger("Server").info("Console command received: " + input);
+        serverLogger.info("Console command received: " + input);
         
         String[] parts = input.split("\\s+");
         String commandName = parts[0].toLowerCase();
@@ -204,7 +205,7 @@ public class API {
     }
     
     public void processPlayerCommand(String input, Player player) {
-        getLogger("Server").info("Player command received from " + player.getName() + ": " + input);
+        serverLogger.info("Player command received from " + player.getName() + ": " + input);
         
         String[] parts = input.split("\\s+");
         String commandName = parts[0].toLowerCase();
@@ -236,6 +237,26 @@ public class API {
             }
         });
     }
+
+    private void registerDefaultCommands()
+    {
+        this.permissionManager.registerPermissionCommands();
+        this.getWorldManager().registerWorldCommand();
+        this.registerCommand("plugins", this::handlePluginsCommand, "*");
+    }
+
+    private void handlePluginsCommand(CommandSender sender, String[] args)
+    {
+        StringBuilder pluginsInfoBuilder = new StringBuilder();
+        pluginsInfoBuilder.append("Plugins: ");
+        for (JavaPlugin plugin : this.pluginManager.getPlugins())
+        {
+            pluginsInfoBuilder.append(",");
+            pluginsInfoBuilder.append(plugin.getName());
+        }
+        pluginsInfoBuilder.append(")");
+        sender.sendMessage(pluginsInfoBuilder.toString());
+        }
 
     public final WorldManager getWorldManager() {
         return getServer().getWorldManager();
