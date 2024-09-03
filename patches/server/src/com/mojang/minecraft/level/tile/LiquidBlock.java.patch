@@ -16,7 +16,7 @@
        var1.addToTickNextTick(var2, var3, var4, this.movingId);
     }
  
-+   public static boolean isFlowingAllowed()
++   private static boolean isFlowingAllowed()
 +   {
 +      return Boolean.parseBoolean(API.getInstance().getServer().getProperties().getProperty("allow-flowing", "true"));
 +   }
