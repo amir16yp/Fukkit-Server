@@ -1,5 +1,6 @@
 package com.fukkit;
 
+import com.fukkit.cpe.MessageType;
 import com.fukkit.cpe.WeatherType;
 import com.mojang.minecraft.net.PacketType;
 import com.mojang.minecraft.server.NetworkManager;
@@ -27,6 +28,11 @@ public class Player implements CommandSender{
         this.getHandle().b(PacketType.ENV_SET_WEATHER_TYPE, new Object[]{weatherType.getValue()});
     }
 
+    public void sendSpecialMessage(String message, MessageType messageType)
+    {
+        if (!this.getHandle().cpeSupported) {return;}
+        this.getHandle().b(PacketType.CHAT_MESSAGE, new Object[]{messageType.getValue(), message});
+    }
 
     public int getID() {
         return handle.playerID;

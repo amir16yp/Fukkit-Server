@@ -1,0 +1,22 @@
+package com.fukkit.cpe;
+
+public enum MessageType {
+    CHAT(0),
+    STATUS_1(1),
+    STATUS_2(2),
+    STATUS_3(3),
+    BOTTOM_RIGHT_1(11),
+    BOTTOM_RIGHT_2(12),
+    BOTTOM_RIGHT_3(13),
+    ANNOUNCEMENT(100);
+
+    private final byte value;
+
+    MessageType(int value) {
+        this.value = (byte) value;
+    }
+
+    public byte getValue() {
+        return value;
+    }
+}

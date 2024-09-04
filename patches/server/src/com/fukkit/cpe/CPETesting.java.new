@@ -15,7 +15,20 @@ public class CPETesting {
         API.getInstance().registerCommand("cpetest:setenv", this::testSetEnv, "cpetest");
         API.getInstance().registerCommand("cpetest:texturepack", this::testSetTexturePack, "cpetest");
         API.getInstance().registerCommand("cpetest:weather", this::testSetWeather, "cpetest");
+        API.getInstance().registerCommand("cpetest:specialmsg", this::testSpecialMessage, "cpetest");
 
+    }
+
+    private void testSpecialMessage(CommandSender sender, String[] args)
+    {
+        if (sender instanceof Player)
+        {
+            Player player = (Player) sender;
+            player.sendSpecialMessage("Test Message", MessageType.ANNOUNCEMENT);
+        } else if (sender instanceof CommandSender)
+        {
+            API.getInstance().sendSpecialMessage("Test Message by server", MessageType.ANNOUNCEMENT);
+        }
     }
 
     private void testSetTexturePack(CommandSender sender, String[] args)

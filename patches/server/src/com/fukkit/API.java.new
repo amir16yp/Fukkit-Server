@@ -5,6 +5,7 @@ import com.mojang.minecraft.server.MinecraftServer;
 import com.mojang.minecraft.server.NetworkManager;
 import com.fukkit.cpe.CPETesting;
 import com.fukkit.cpe.Environment;
+import com.fukkit.cpe.MessageType;
 import com.fukkit.cpe.WeatherType;
 import com.mojang.minecraft.level.Level;
 import java.util.*;
@@ -44,6 +45,11 @@ public class API {
     public Environment getDefaultEnvironment()
     {
         return this.defaultEnvironment;
+    }
+
+    public void sendSpecialMessage(String message, MessageType messageType)
+    {
+        this.server.broadcastPacketToCPEClients(PacketType.CHAT_MESSAGE, new Object[]{messageType.getValue(), message});
     }
 
     public void broadcastWeather(WeatherType weather)
