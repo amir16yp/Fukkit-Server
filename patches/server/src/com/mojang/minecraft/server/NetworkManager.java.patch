@@ -40,7 +40,7 @@
  
     public NetworkManager(MinecraftServer var1, NetworkHandler var2, int var3) {
        this.server = var1;
-@@ -49,135 +59,270 @@
+@@ -49,135 +59,274 @@
        this.xSpawn = (var4.xSpawn << 5) + 16;
        this.ySpawn = (var4.ySpawn << 5) + 16;
        this.zSpawn = (var4.zSpawn << 5) + 16;
@@ -177,6 +177,12 @@
 +      if (this.server.playerManager2.containsPlayer(username)) {
 +         this.kickPlayer("You're banned!");
 +         return;
++      }
++
++      if (this.server.adminSlot && !this.server.playerManager1.containsPlayer(username)
++            && this.server.getAvailableSlots() < 1) {
++         this.kickPlayer("The server is full!");
++         return;
        }
 -   }
  
@@ -187,12 +193,6 @@
 -         this.timeTillTalk = 760;
 -         this.b(PacketType.CHAT_MESSAGE, new Object[]{Integer.valueOf(-1), "Too much chatter! Muted for eight seconds."});
 -         logger.info("Muting " + this.playerName + " for chatting too much");
-+      if (this.server.adminSlot && !this.server.playerManager1.containsPlayer(username)
-+            && this.server.getAvailableSlots() < 1) {
-+         this.kickPlayer("The server is full!");
-+         return;
-+      }
-+
 +      NetworkManager existingPlayer = this.server.c(username);
 +      if (existingPlayer != null) {
 +         existingPlayer.kickPlayer("You logged in from another computer.");
@@ -267,9 +267,11 @@
 +      } else if (var1 == PacketType.PLAYER_SET_BLOCK) {
 +         if (this.p.size() > 1200) {
 +            this.d("Too much lag");
-+         } else {
+          } else {
+-            logger.info(this.playerName + " says: " + var1);
+-            this.server.a(PacketType.CHAT_MESSAGE, new Object[]{Integer.valueOf(this.playerID), this.playerName + ": " + var1});
 +            this.p.add(var2);
-+         }
+          }
 +      } else if (var1 == PacketType.CHAT_MESSAGE) {
 +         //String message = var2[1].toString().trim();
 +         //if (message.length() > 0) {
@@ -279,11 +281,9 @@
 +      } else if (var1 == PacketType.POSITION_ROTATION) {
 +         if (this.p.size() > 1200) {
 +            this.d("Too much lag");
-          } else {
--            logger.info(this.playerName + " says: " + var1);
--            this.server.a(PacketType.CHAT_MESSAGE, new Object[]{Integer.valueOf(this.playerID), this.playerName + ": " + var1});
++         } else {
 +            this.p.add(var2);
-          }
++         }
 +      } else {
 +         logger.warning("Unknown packet type, attempting as CPE packet type: " + var1);
 +         handleCPEPacket(var1, var2);
@@ -329,6 +329,10 @@
 +      {
 +         player.applyTextureURL(texturePackURL);
 +      }
++   }
++   if (API.getInstance().getEnvironment() != null)
++   {
++      API.getInstance().getEnvironment().applyTo(player);
 +   }
 +  }
 +
@@ -409,7 +413,7 @@
     }
  
     public final void a(byte[] var1) {
-@@ -185,22 +330,22 @@
+@@ -185,22 +334,22 @@
     }
  
     public final void a() {
@@ -438,7 +442,7 @@
              byte var3;
              byte var4;
              short var5;
-@@ -210,110 +355,172 @@
+@@ -210,110 +359,172 @@
              short var10002;
              short var10003;
              byte var10004;
@@ -683,7 +687,7 @@
           Level var11 = this.server.mainLevel;
           byte[] var15 = new byte[1024];
           int var20 = 0;
-@@ -321,37 +528,50 @@
+@@ -321,37 +532,50 @@
           this.networkHandler.send(PacketType.LEVEL_INITIALIZE, new Object[0]);
  
           int var17;
@@ -747,7 +751,7 @@
              this.b(var14, var2);
           }
  
-@@ -360,8 +580,8 @@
+@@ -360,8 +584,8 @@
        }
     }
  
@@ -758,7 +762,7 @@
           this.n.add(var1);
           this.n.add(var2);
        } else {
-@@ -370,16 +590,13 @@
+@@ -370,16 +594,13 @@
     }
  
     public final void a(Exception var1) {

@@ -31,6 +31,10 @@ public class Environment {
     }
 
     public void applyTo(Player player) {
+        if (!player.getHandle().cpeSupported)
+        {
+            return;
+        }
         for (Map.Entry<ColorVariable, Color> entry : colors.entrySet()) {
             ColorVariable variable = entry.getKey();
             Color color = entry.getValue();
@@ -48,7 +52,7 @@ public class Environment {
         for (Map.Entry<ColorVariable, Color> entry : colors.entrySet()) {
             ColorVariable variable = entry.getKey();
             Color color = entry.getValue();
-            API.getInstance().getServer().broadcastPacket(PacketType.ENV_SET_COLOR, new Object[]{
+            API.getInstance().getServer().broadcastPacketToCPEClients(PacketType.ENV_SET_COLOR, new Object[]{
                 Byte.valueOf((byte) variable.ordinal()),
                 Short.valueOf((short) color.getRed()),
                 Short.valueOf((short) color.getGreen()),

@@ -1,6 +1,6 @@
 --- a/src/com/mojang/minecraft/server/MinecraftServer.java
 +++ b/src/com/mojang/minecraft/server/MinecraftServer.java
-@@ -1,43 +1,26 @@
+@@ -1,43 +1,27 @@
  package com.mojang.minecraft.server;
  
 -import com.mojang.minecraft.level.LevelIO;
@@ -8,6 +8,7 @@
 +import com.fukkit.API;
 +import com.fukkit.Scheduler;
 +import com.fukkit.WorldManager;
++import com.fukkit.cpe.Environment;
  import com.mojang.minecraft.net.PacketType;
 -import com.mojang.minecraft.server.ConsoleInput;
 -import com.mojang.minecraft.server.HeartbeatManager;
@@ -52,7 +53,7 @@
     static DateFormat dateFormat = new SimpleDateFormat("HH:mm:ss");
     private BindTo bindTo;
     private Map m = new HashMap();
-@@ -51,7 +34,7 @@
+@@ -51,7 +35,7 @@
     public String MOTD;
     private int port;
     public boolean adminSlot;
@@ -61,7 +62,7 @@
     public PlayerManager playerManager1 = new PlayerManager("Admins", new File("admins.txt"));
     public PlayerManager playerManager2 = new PlayerManager("Banned", new File("banned.txt"));
     private PlayerManager playerManager3 = new PlayerManager("Banned (IP)", new File("banned-ip.txt"));
-@@ -63,13 +46,30 @@
+@@ -63,13 +47,30 @@
     public boolean verifyNames;
     private boolean growTrees;
     private int maxConnections;
@@ -75,14 +76,14 @@
 +   {
 +      return this.scheduler;
 +   }
-+
+ 
 +   public Properties getProperties()
 +   {
 +      return this.properties;
 +   }
  
- 
 -   public MinecraftServer() {
++
 +   public MinecraftServer() throws SocketException, IOException {
 +      logger = API.getLogger("Server");
 +      this.scheduler = new Scheduler();
@@ -94,7 +95,7 @@
        try {
           this.properties.load(new FileReader("server.properties"));
        } catch (Exception var4) {
-@@ -85,14 +85,19 @@
+@@ -85,14 +86,19 @@
           this.verifyNames = Boolean.parseBoolean(this.properties.getProperty("verify-names", "true"));
           this.growTrees = Boolean.parseBoolean(this.properties.getProperty("grow-trees", "false"));
           this.adminSlot = Boolean.parseBoolean(this.properties.getProperty("admin-slot", "false"));
@@ -119,7 +120,7 @@
           this.maxConnections = Integer.parseInt(this.properties.getProperty("max-connections", "3"));
           this.properties.setProperty("server-name", this.serverName);
           this.properties.setProperty("motd", this.MOTD);
-@@ -103,6 +108,14 @@
+@@ -103,6 +109,14 @@
           this.properties.setProperty("max-connections", "3");
           this.properties.setProperty("grow-trees", "" + this.growTrees);
           this.properties.setProperty("admin-slot", "" + this.adminSlot);
@@ -134,7 +135,7 @@
        } catch (Exception var3) {
           var3.printStackTrace();
           logger.warning("server.properties is broken! Delete it or fix it!");
-@@ -125,18 +138,30 @@
+@@ -125,18 +139,30 @@
           logger.warning("###########################################################");
        }
  
@@ -167,7 +168,7 @@
        NetworkManager var2;
        if((var2 = (NetworkManager)this.m.get(var1)) != null) {
           this.playerManager4.removePlayer(var2.playerName);
-@@ -147,7 +172,7 @@
+@@ -147,7 +173,7 @@
              this.networkManager[var2.playerID] = null;
           }
  
@@ -176,7 +177,7 @@
        }
  
     }
-@@ -156,15 +181,15 @@
+@@ -156,15 +182,15 @@
        this.o.add(new UNKNOWN0(var1, 100));
     }
  
@@ -195,8 +196,27 @@
        for(int var3 = 0; var3 < this.n.size(); ++var3) {
           try {
              ((NetworkManager)this.n.get(var3)).b(var1, var2);
-@@ -175,7 +200,7 @@
+@@ -172,10 +198,26 @@
+             ((NetworkManager)this.n.get(var3)).a(var5);
+          }
+       }
++   }
++
++   public final void broadcastPacketToCPEClients(PacketType packetType, Object ... obj)
++   {
++      for(int var3 = 0; var3 < this.n.size(); ++var3) {
++         try {
++            NetworkManager mgr;
++            mgr = (NetworkManager) this.n.get(var3);
++            if (mgr.cpeSupported)
++            {
++               mgr.b(packetType, obj);
++            }
  
++         } catch (Exception exception) {
++            logger.warning(exception.getMessage());
++         }
++      }
     }
  
 -   public final void a(NetworkManager var1, PacketType var2, Object ... var3) {
@@ -204,16 +224,17 @@
        for(int var4 = 0; var4 < this.n.size(); ++var4) {
           if(this.n.get(var4) != var1) {
              try {
-@@ -190,61 +215,77 @@
+@@ -190,61 +232,85 @@
  
     public void run() {
        logger.info("Now accepting input on " + this.port);
 -      int var1 = 50000000;
 -      int var2 = 500000000;
+-
 +      int tickTime = 50000000; // 50 ms in nanoseconds
 +      int saveInterval = 1200; // Save every 1200 ticks (1 minute)
 +      int heartbeatInterval = 900; // Heartbeat every 900 ticks (45 seconds)
- 
++      int broadcastCPEstuffInterval = 600; // 30 seconds
        try {
 -         long var3 = System.nanoTime();
 -         long var5 = System.nanoTime();
@@ -236,12 +257,12 @@
 +
 +            // Handle network operations
 +            this.handleNetworkOperations();
- 
++
 +            // Tick the server
 +            if (now - lastTick > tickTime) {
 +               lastTick = now;
 +               tickCount++;
-+
+ 
 +               scheduler.runTasks();
 +
 +               // Tick players and world
@@ -287,29 +308,35 @@
 +                  data.put("admin-slot", this.adminSlot);
 +                  data.put("version", (byte) 7);
 +                  data.put("software", "Fukkit (modded Vanilla)");
-+                  data.put("web", "true");
 +
 +                  String heartbeatData = a(data);
 +                  new HeartbeatManager(this, heartbeatData).start();
++               }
++
++               if (tickCount % broadcastCPEstuffInterval == 0)
++               {
++                  Environment environment = API.getInstance().getEnvironment();
++                  if (environment != null)
++                  {
++                     environment.broadcastToServer();
++                  }
                 }
              }
  
 -            while(System.nanoTime() - var3 > (long)var2) {
 -               var3 += (long)var2;
 -               this.a(PacketType.PING, new Object[0]);
--            }
--
++            // Send ping
++            if (now - lastPing > 500000000) { // 500 ms
++               lastPing = now;
++               this.broadcastPacket(PacketType.PING, new Object[0]);
+             }
+ 
 -            Thread.sleep(5L);
 -         }
 -      } catch (Exception var12) {
 -         logger.log(Level.SEVERE, "Error in main loop, server shutting down!", var12);
 -         var12.printStackTrace();
-+            // Send ping
-+            if (now - lastPing > 500000000) { // 500 ms
-+               lastPing = now;
-+               this.broadcastPacket(PacketType.PING, new Object[0]);
-+            }
-+
 +            // Small sleep to prevent busy-waiting
 +            Thread.sleep(1);
 +         }
@@ -324,7 +351,7 @@
     private static String a(Map var0) {
        try {
           String var1 = "";
-@@ -264,7 +305,7 @@
+@@ -264,7 +330,7 @@
        }
     }
  
@@ -333,7 +360,7 @@
        Iterator var1 = this.n.iterator();
  
        while(var1.hasNext()) {
-@@ -281,7 +322,7 @@
+@@ -281,7 +347,7 @@
  
        for(int var9 = 0; var9 < this.o.size(); ++var9) {
           UNKNOWN0 var10 = (UNKNOWN0)this.o.get(var9);
@@ -342,7 +369,7 @@
  
           try {
              NetworkHandler var3 = var10.networkHandler;
-@@ -316,19 +357,19 @@
+@@ -316,19 +382,19 @@
  
     }
  
@@ -366,7 +393,7 @@
           }
        }
  
-@@ -337,7 +378,7 @@
+@@ -337,7 +403,7 @@
  
           SocketChannel var14;
           while((var14 = var13.serverChannel.accept()) != null) {
@@ -375,7 +402,7 @@
                 var14.configureBlocking(false);
                 NetworkHandler var2 = new NetworkHandler(var14);
                 var13.c.add(var2);
-@@ -363,7 +404,7 @@
+@@ -363,7 +429,7 @@
                       var4.b(var3);
                    } else {
                       int var22;
@@ -384,7 +411,7 @@
                          var3.send(PacketType.DISCONNECT, new Object[]{"The server is full!"});
                          logger.info(var3.address + " tried to connect, but failed because the server was full.");
                          var4.b(var3);
-@@ -396,10 +437,17 @@
+@@ -396,10 +462,17 @@
                    var19.in.flip();
                    byte var20 = var19.in.get(0);
                    PacketType var24;
@@ -404,7 +431,7 @@
                    if(var19.in.remaining() < var24.length + 1) {
                       var19.in.compact();
                       break;
-@@ -412,7 +460,7 @@
+@@ -412,7 +485,7 @@
                       var21[var7] = var19.receive(var24.params[var7]);
                    }
  
@@ -413,7 +440,7 @@
                    if(!var19.connected) {
                       break;
                    }
-@@ -436,7 +484,7 @@
+@@ -436,7 +509,7 @@
              try {
                 if(!var15.connected) {
                    var15.close();
@@ -422,7 +449,7 @@
                    var13.c.remove(var17--);
                 }
              } catch (Exception var8) {
-@@ -449,7 +497,7 @@
+@@ -449,7 +522,7 @@
        }
     }
  
@@ -431,7 +458,7 @@
        while(var2.startsWith("/")) {
           var2 = var2.substring(1);
        }
-@@ -489,12 +537,12 @@
+@@ -489,12 +562,12 @@
              }
           } else {
              if(var3[0].toLowerCase().equals("broadcast") && var3.length > 1) {
@@ -446,7 +473,7 @@
                 return;
              }
  
-@@ -519,11 +567,11 @@
+@@ -519,11 +592,11 @@
        }
     }
  
@@ -461,7 +488,7 @@
        int var1 = 0;
  
        for(int var2 = 0; var2 < this.maxPlayers; ++var2) {
-@@ -535,7 +583,7 @@
+@@ -535,7 +608,7 @@
        return var1;
     }
  
@@ -470,7 +497,7 @@
        for(int var1 = 0; var1 < this.maxPlayers; ++var1) {
           if(this.networkManager[var1] == null) {
              return var1;
-@@ -557,17 +605,17 @@
+@@ -557,17 +630,17 @@
           NetworkManager var4;
           if((var4 = (NetworkManager)var3.next()).playerName.equalsIgnoreCase(var1)) {
              var2 = true;
@@ -491,7 +518,7 @@
        this.playerManager2.addPlayer(var1);
        boolean var2 = false;
        Iterator var3 = this.n.iterator();
-@@ -576,17 +624,17 @@
+@@ -576,17 +649,17 @@
           NetworkManager var4;
           if((var4 = (NetworkManager)var3.next()).playerName.equalsIgnoreCase(var1)) {
              var2 = true;
@@ -512,7 +539,7 @@
        this.playerManager1.addPlayer(var1);
        Iterator var3 = this.n.iterator();
  
-@@ -600,7 +648,7 @@
+@@ -600,7 +673,7 @@
  
     }
  
@@ -521,7 +548,7 @@
        this.playerManager1.removePlayer(var1);
        Iterator var3 = this.n.iterator();
  
-@@ -635,7 +683,7 @@
+@@ -635,7 +708,7 @@
  
           var6 = var5.networkHandler;
           this.playerManager3.addPlayer(var5.networkHandler.address);
@@ -530,7 +557,7 @@
           if(var3 == "") {
              var3 = var3 + ", ";
           }
-@@ -645,7 +693,7 @@
+@@ -645,7 +718,7 @@
        }
  
        if(var2) {
@@ -539,7 +566,7 @@
        }
  
     }
-@@ -663,44 +711,44 @@
+@@ -663,44 +736,44 @@
        return var2;
     }
  
@@ -612,7 +639,7 @@
     // $FF: synthetic method
     static List a(MinecraftServer var0) {
        return var0.v;
-@@ -738,4 +786,9 @@
+@@ -738,4 +811,9 @@
           logger.warning("Failed to open file server.log for writing: " + var5);
        }
     }

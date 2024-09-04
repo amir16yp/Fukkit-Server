@@ -55,5 +55,6 @@ public class CPETesting {
         {
             redSkyRainEnvironment.broadcastToServer();
         }
+        API.getInstance().setEnvironment(redSkyRainEnvironment);
     }
 }

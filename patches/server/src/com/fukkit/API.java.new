@@ -4,6 +4,7 @@ import com.mojang.minecraft.net.PacketType;
 import com.mojang.minecraft.server.MinecraftServer;
 import com.mojang.minecraft.server.NetworkManager;
 import com.fukkit.cpe.CPETesting;
+import com.fukkit.cpe.Environment;
 import com.mojang.minecraft.level.Level;
 import java.util.*;
 import java.util.function.BiConsumer;
@@ -19,6 +20,20 @@ public class API {
     private PermissionManager permissionManager;
     public static Logger serverLogger = Logger.getLogger("MinecraftServer");
     private String globalTexturePackURL; 
+
+    private Environment defaulEnvironment;
+
+    public void setEnvironment(Environment environment)
+    {
+        this.defaulEnvironment = environment;
+        defaulEnvironment.broadcastToServer();
+    }
+
+    public Environment getEnvironment()
+    {
+        return this.defaulEnvironment;
+    }
+
 
     public void setTexturePackURL(String url)
     {
@@ -37,7 +52,7 @@ public class API {
         {
             if (!packURL.isEmpty())
             {
-                this.getServer().broadcastPacket(PacketType.SET_MAP_ENV_URL, new Object[]{packURL});
+                this.getServer().broadcastPacketToCPEClients(PacketType.SET_MAP_ENV_URL, new Object[]{packURL});
             }
         }
     }
@@ -272,32 +287,39 @@ public class API {
         this.registerCommand("commands", this::handleListCommandsCommand, "*");
     }
 
-    private void handleListCommandsCommand(CommandSender sender, String[] args)
-    {
-        StringBuilder commandListBuilder = new StringBuilder();
-        commandListBuilder.append("Commands:");
-        for (String command : customCommands.keySet())
-        {
-            commandListBuilder.append("\n");
-            commandListBuilder.append("/");
-            commandListBuilder.append(command);
+    private void handleListCommandsCommand(CommandSender sender, String[] args) {
+        if (customCommands.isEmpty()) {
+            sender.sendMessage("No custom commands available.");
+            return;
         }
-        sender.sendMessage(commandListBuilder.toString());
+    
+        List<String> sortedCommands = new ArrayList<>(customCommands.keySet());
+        Collections.sort(sortedCommands);
+    
+        sender.sendMessage("Available Commands:");
+        for (String command : sortedCommands) {
+            sender.sendMessage("  /" + command);
+        }
     }
-
-    private void handlePluginsCommand(CommandSender sender, String[] args)
-    {
-        StringBuilder pluginsInfoBuilder = new StringBuilder();
-        pluginsInfoBuilder.append("Plugins: (");
-        for (JavaPlugin plugin : this.pluginManager.getPlugins())
-        {
-            pluginsInfoBuilder.append(",");
-            pluginsInfoBuilder.append(plugin.getName());
+    
+    private void handlePluginsCommand(CommandSender sender, String[] args) {
+        List<JavaPlugin> plugins = this.pluginManager.getPlugins();
+        if (plugins.size() == 0) {
+            sender.sendMessage("No plugins are currently loaded.");
+            return;
         }
-        pluginsInfoBuilder.append(")");
-        sender.sendMessage(pluginsInfoBuilder.toString());
+    
+        List<String> pluginInfos = new ArrayList<>();
+        for (JavaPlugin plugin : plugins) {
+            pluginInfos.add(plugin.getName());
         }
-
+        Collections.sort(pluginInfos);
+    
+        sender.sendMessage("Loaded Plugins (" + plugins.size() + "):");
+        for (String pluginInfo : pluginInfos) {
+            sender.sendMessage("  " + pluginInfo);
+        }
+    }
     public final WorldManager getWorldManager() {
         return getServer().getWorldManager();
     }
