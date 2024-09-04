@@ -10,6 +10,7 @@ public class Player implements CommandSender{
         this.handle = handle;
     }
 
+
     @Override
     public String getName() {
         return handle.playerName;
@@ -31,6 +32,22 @@ public class Player implements CommandSender{
     @Override
     public void sendMessage(String message) {
         handle.b(PacketType.CHAT_MESSAGE, new Object[]{Integer.valueOf(-1), message});
+    }
+
+    public void applyTextureURL(String url)
+    {
+        if (url != null)
+        {
+            if (!url.isEmpty())
+            {
+                this.handle.b(PacketType.SET_MAP_ENV_URL, new Object[]{url});
+            }
+        }
+    }
+
+    public void applyTextureURL()
+    {
+        this.applyTextureURL(API.getInstance().getTexturePackURL());
     }
 
     public void kick(String reason) {

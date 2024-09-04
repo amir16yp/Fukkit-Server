@@ -1,0 +1,106 @@
+package com.fukkit.cpe;
+
+import com.fukkit.API;
+import java.util.EnumMap;
+import java.util.Map;
+
+import com.fukkit.Player;
+import com.mojang.minecraft.net.PacketType;
+
+
+public class Environment {
+    private Map<ColorVariable, Color> colors;
+
+    public Environment() {
+        colors = new EnumMap<>(ColorVariable.class);
+        resetToDefaults();
+    }
+
+    public void setColor(ColorVariable variable, int red, int green, int blue) {
+        colors.put(variable, new Color(red, green, blue));
+    }
+
+    public Color getColor(ColorVariable variable) {
+        return colors.get(variable);
+    }
+
+    public void resetToDefaults() {
+        for (ColorVariable variable : ColorVariable.values()) {
+            colors.put(variable, variable.getDefaultColor());
+        }
+    }
+
+    public void applyTo(Player player) {
+        for (Map.Entry<ColorVariable, Color> entry : colors.entrySet()) {
+            ColorVariable variable = entry.getKey();
+            Color color = entry.getValue();
+            player.getHandle().networkHandler.send(PacketType.ENV_SET_COLOR, new Object[]{
+                Byte.valueOf((byte) variable.ordinal()),
+                Short.valueOf((short) color.getRed()),
+                Short.valueOf((short) color.getGreen()),
+                Short.valueOf((short) color.getBlue())
+            });
+        }
+    }
+
+    public void broadcastToServer()
+    {
+        for (Map.Entry<ColorVariable, Color> entry : colors.entrySet()) {
+            ColorVariable variable = entry.getKey();
+            Color color = entry.getValue();
+            API.getInstance().getServer().broadcastPacket(PacketType.ENV_SET_COLOR, new Object[]{
+                Byte.valueOf((byte) variable.ordinal()),
+                Short.valueOf((short) color.getRed()),
+                Short.valueOf((short) color.getGreen()),
+                Short.valueOf((short) color.getBlue())
+            });
+        }
+    }
+
+    public enum ColorVariable {
+        SKY(new Color(0, 0, 255)),
+        CLOUD(new Color(255, 255, 255)),
+        FOG(new Color(255, 255, 255)),
+        AMBIENT(new Color(128, 128, 128)),
+        DIFFUSE(new Color(255, 255, 255)),
+        SKYBOX(new Color(0, 0, 0));
+
+        private final Color defaultColor;
+
+        ColorVariable(Color defaultColor) {
+            this.defaultColor = defaultColor;
+        }
+
+        public Color getDefaultColor() {
+            return defaultColor;
+        }
+    }
+
+    public static class Color {
+        private final int red;
+        private final int green;
+        private final int blue;
+
+        public Color(int red, int green, int blue) {
+            this.red = clamp(red);
+            this.green = clamp(green);
+            this.blue = clamp(blue);
+        }
+
+        private int clamp(int value) {
+            return Math.max(-1, Math.min(255, value));
+        }
+
+        public int getRed() {
+            return red;
+        }
+
+        public int getGreen() {
+            return green;
+        }
+
+        public int getBlue() {
+            return blue;
+        }
+    }
+}

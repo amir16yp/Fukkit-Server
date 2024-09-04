@@ -40,7 +40,7 @@
  
     public NetworkManager(MinecraftServer var1, NetworkHandler var2, int var3) {
        this.server = var1;
-@@ -49,135 +59,253 @@
+@@ -49,135 +59,270 @@
        this.xSpawn = (var4.xSpawn << 5) + 16;
        this.ySpawn = (var4.ySpawn << 5) + 16;
        this.zSpawn = (var4.zSpawn << 5) + 16;
@@ -267,11 +267,9 @@
 +      } else if (var1 == PacketType.PLAYER_SET_BLOCK) {
 +         if (this.p.size() > 1200) {
 +            this.d("Too much lag");
-          } else {
--            logger.info(this.playerName + " says: " + var1);
--            this.server.a(PacketType.CHAT_MESSAGE, new Object[]{Integer.valueOf(this.playerID), this.playerName + ": " + var1});
++         } else {
 +            this.p.add(var2);
-          }
++         }
 +      } else if (var1 == PacketType.CHAT_MESSAGE) {
 +         //String message = var2[1].toString().trim();
 +         //if (message.length() > 0) {
@@ -281,9 +279,11 @@
 +      } else if (var1 == PacketType.POSITION_ROTATION) {
 +         if (this.p.size() > 1200) {
 +            this.d("Too much lag");
-+         } else {
+          } else {
+-            logger.info(this.playerName + " says: " + var1);
+-            this.server.a(PacketType.CHAT_MESSAGE, new Object[]{Integer.valueOf(this.playerID), this.playerName + ": " + var1});
 +            this.p.add(var2);
-+         }
+          }
 +      } else {
 +         logger.warning("Unknown packet type, attempting as CPE packet type: " + var1);
 +         handleCPEPacket(var1, var2);
@@ -313,6 +313,23 @@
 +      this.m = true; // Set this to true to indicate the player is fully initialized
 +
 +      logger.info("Welcome packets sent to " + this);
++      if (this.cpeSupported)
++      {
++         sendCPERelatedWelcome();
++      }
++  }
++
++  private void sendCPERelatedWelcome()
++  {
++   Player player = new Player(this);
++   String texturePackURL = API.getInstance().getTexturePackURL();
++   if (texturePackURL != null)
++   {
++      if (!texturePackURL.isEmpty())
++      {
++         player.applyTextureURL(texturePackURL);
++      }
++   }
 +  }
 +
 +  private static final int MAX_MESSAGE_LENGTH = 64; // Define the maximum length for each message part
@@ -392,7 +409,7 @@
     }
  
     public final void a(byte[] var1) {
-@@ -185,22 +313,22 @@
+@@ -185,22 +330,22 @@
     }
  
     public final void a() {
@@ -421,7 +438,7 @@
              byte var3;
              byte var4;
              short var5;
-@@ -210,110 +338,172 @@
+@@ -210,110 +355,172 @@
              short var10002;
              short var10003;
              byte var10004;
@@ -511,11 +528,11 @@
 +                              } else {
 +                                 var7.setTile(var13, var6, var5, newBlock.id);
 +                              }
-+
-+                              // Call onPlace method of the placed block
-+                              newBlock.onPlace(var7, var13, var6, var5);
  
 -                           Block.blocks[var3].onPlace(var7, var13, var6, var5);
++                              // Call onPlace method of the placed block
++                              newBlock.onPlace(var7, var13, var6, var5);
++
 +                              // You might want to notify nearby clients about the block change
 +                           }
 +                           this.server.updateBlock(var13, var6, var5);
@@ -666,7 +683,7 @@
           Level var11 = this.server.mainLevel;
           byte[] var15 = new byte[1024];
           int var20 = 0;
-@@ -321,37 +511,50 @@
+@@ -321,37 +528,50 @@
           this.networkHandler.send(PacketType.LEVEL_INITIALIZE, new Object[0]);
  
           int var17;
@@ -730,7 +747,7 @@
              this.b(var14, var2);
           }
  
-@@ -360,8 +563,8 @@
+@@ -360,8 +580,8 @@
        }
     }
  
@@ -741,7 +758,7 @@
           this.n.add(var1);
           this.n.add(var2);
        } else {
-@@ -370,16 +573,13 @@
+@@ -370,16 +590,13 @@
     }
  
     public final void a(Exception var1) {

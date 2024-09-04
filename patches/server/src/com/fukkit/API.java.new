@@ -3,6 +3,7 @@ package com.fukkit;
 import com.mojang.minecraft.net.PacketType;
 import com.mojang.minecraft.server.MinecraftServer;
 import com.mojang.minecraft.server.NetworkManager;
+import com.fukkit.cpe.CPETesting;
 import com.mojang.minecraft.level.Level;
 import java.util.*;
 import java.util.function.BiConsumer;
@@ -17,7 +18,29 @@ public class API {
     private static Map<String, PrefixedLogger> pluginLoggers = new HashMap<>();
     private PermissionManager permissionManager;
     public static Logger serverLogger = Logger.getLogger("MinecraftServer");
+    private String globalTexturePackURL; 
 
+    public void setTexturePackURL(String url)
+    {
+        this.globalTexturePackURL = url;
+    }
+
+    public String getTexturePackURL()
+    {
+        return globalTexturePackURL;
+    }
+
+    public void broadcastTexturePack()
+    {
+        String packURL =getTexturePackURL();
+        if (packURL != null)
+        {
+            if (!packURL.isEmpty())
+            {
+                this.getServer().broadcastPacket(PacketType.SET_MAP_ENV_URL, new Object[]{packURL});
+            }
+        }
+    }
 
     public API(MinecraftServer server)
     {
@@ -94,9 +117,11 @@ public class API {
             server.getWorldManager().registerWorldCommand();
             //instance.permissionManager.registerPermissionCommands();
             //instance.pluginManager = new PluginManager(server);
+            instance.setTexturePackURL(server.getProperties().getProperty("texture-pack"));;
             instance.registerDefaultCommands();
             instance.loadPlugins(); // Load plugins during initialization
             instance.enablePlugins(); // Enable plugins after loading
+            CPETesting testing = new CPETesting();
         }
 
 

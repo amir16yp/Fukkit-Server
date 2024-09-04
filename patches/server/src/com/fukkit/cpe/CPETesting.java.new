@@ -1,0 +1,59 @@
+package com.fukkit.cpe;
+
+import com.fukkit.API;
+import com.fukkit.CommandSender;
+import com.fukkit.Player;
+
+public class CPETesting {
+    public CPETesting()
+    {
+        registerTestCommands();
+    }
+
+    public void registerTestCommands()
+    {
+        API.getInstance().registerCommand("cpetest:setenv", this::testSetEnv, "cpetest");
+        API.getInstance().registerCommand("cpetest:texturepack", this::testSetTexturePack, "cpetest");
+
+    }
+
+    private void testSetTexturePack(CommandSender sender, String[] args)
+    {
+        API.getInstance().setTexturePackURL("https://123dmwm.com/texturepacks/CutieCraft.zip");
+        if (sender instanceof Player)
+        {
+            Player player = (Player) sender;
+            player.applyTextureURL();
+        } else if (sender instanceof CommandSender)
+        {
+            API.getInstance().broadcastTexturePack();
+        }
+    }
+
+    private void testSetEnv(CommandSender sender, String[] args)
+    {
+        Environment redSkyRainEnvironment = new Environment();
+
+        // Set the sky to a deep red color
+        redSkyRainEnvironment.setColor(Environment.ColorVariable.SKY, 255, 0, 0);
+
+        // Set the clouds to a dark grey to simulate rain clouds
+        redSkyRainEnvironment.setColor(Environment.ColorVariable.CLOUD, 100, 100, 100);
+
+        // Set the fog to a light grey to simulate rain and reduced visibility
+        redSkyRainEnvironment.setColor(Environment.ColorVariable.FOG, 200, 200, 200);
+
+        // Reduce ambient light to make it feel darker
+        redSkyRainEnvironment.setColor(Environment.ColorVariable.AMBIENT, 80, 80, 80);
+
+        // Reduce diffuse light to simulate less sunlight due to clouds
+        redSkyRainEnvironment.setColor(Environment.ColorVariable.DIFFUSE, 150, 150, 150);
+        if (sender instanceof Player)
+        {
+            redSkyRainEnvironment.applyTo((Player) sender);   
+        } else if (sender instanceof CommandSender)
+        {
+            redSkyRainEnvironment.broadcastToServer();
+        }
+    }
+}
