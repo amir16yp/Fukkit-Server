@@ -44,7 +44,12 @@ public class Player implements CommandSender{
 
     @Override
     public void sendMessage(String message) {
-        handle.b(PacketType.CHAT_MESSAGE, new Object[]{Integer.valueOf(-1), message});
+        if (this.getHandle().cpeSupported)
+        {
+            this.sendSpecialMessage(message, MessageType.CHAT);
+        } else {
+            handle.b(PacketType.CHAT_MESSAGE, new Object[]{Integer.valueOf(-1), message});
+        }
     }
 
     public void applyTexturePackURL(String url)

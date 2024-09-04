@@ -9,6 +9,10 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
+import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.logging.Logger;
 
@@ -18,12 +22,22 @@ public class WorldManager {
     private String activeWorldName;
     private final Logger logger;
     private final Map<String, Class<? extends LevelGenerator>> registeredGenerators;
+    private final String backupFolder = "worldBackups";
 
     public WorldManager(MinecraftServer server) {
         this.server = server;
         this.logger = API.getLogger("WorldManager");
         this.registeredGenerators = new HashMap<>();
         this.registerDefaultGenerator();
+        createBackupFolder();
+    }
+
+    private void createBackupFolder() {
+        File folder = new File(backupFolder);
+        if (!folder.exists()) {
+            folder.mkdir();
+            logger.info("Created world backups folder: " + backupFolder);
+        }
     }
 
     private void registerDefaultGenerator() {
@@ -44,8 +58,8 @@ public class WorldManager {
             return loadWorld(name);
         }
 
-
-        Class<? extends LevelGenerator> generatorClass = registeredGenerators.getOrDefault(generatorName, LevelGenerator.class);
+        Class<? extends LevelGenerator> generatorClass = registeredGenerators.getOrDefault(generatorName,
+                LevelGenerator.class);
         LevelGenerator generator;
         try {
             generator = generatorClass.getConstructor(MinecraftServer.class, long.class).newInstance(server, seed);
@@ -102,7 +116,6 @@ public class WorldManager {
         return null;
     }
 
-
     public void unloadWorld(boolean save) {
         if (activeWorld == null) {
             logger.warning("No world is currently loaded.");
@@ -152,7 +165,7 @@ public class WorldManager {
 
     // Helper method to save world as ClassicWorld format
     private void saveWorldAsClassicWorld(Level level, File file) throws IOException {
-            ClassicWorldParser.saveClassicWorld(level, file);
+        ClassicWorldParser.saveClassicWorld(level, file);
     }
 
     // Helper method to save world as .dat format
@@ -161,7 +174,6 @@ public class WorldManager {
             LevelIO.save(level, fos);
         }
     }
-
 
     public Level getActiveWorld() {
         return activeWorld;
@@ -178,7 +190,6 @@ public class WorldManager {
         activeWorld = level;
         activeWorldName = name;
     }
-
 
     public void registerWorldCommand() {
         API.getInstance().registerCommand("world", (sender, args) -> {
@@ -220,10 +231,98 @@ public class WorldManager {
                     }
                     deleteWorld(sender, args[1]);
                     break;
+                case "backup":
+                    if (args.length < 2) {
+                        sender.sendMessage("Usage: /world backup <worldname>");
+                        return;
+                    }
+                    backupWorld(sender, args[1]);
+                    break;
+                case "restore":
+                    if (args.length < 2) {
+                        sender.sendMessage("Usage: /world restore <worldname>");
+                        return;
+                    }
+                    restoreWorld(sender, args[1]);
+                    break;
+                case "current":
+                    showCurrentWorld(sender);
+                    break;
                 default:
-                    sender.sendMessage("Unknown world command. Use create, load, switch, list, or delete.");
+                    sender.sendMessage(
+                            "Unknown world command. Use create, load, switch, list, delete, backup, restore, or current.");
             }
         }, "world.mgr");
+    }
+
+    private void backupWorld(CommandSender sender, String worldName) {
+        File levelFile = new File(worldName + "_level.dat");
+        File cwFile = new File(worldName + ".cw");
+
+        if (!levelFile.exists() && !cwFile.exists()) {
+            sender.sendMessage("World '" + worldName + "' does not exist.");
+            return;
+        }
+
+        String timestamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
+        String backupName = worldName + "_" + timestamp;
+
+        try {
+            if (levelFile.exists()) {
+                Files.copy(levelFile.toPath(), Paths.get(backupFolder, backupName + "_level.dat"));
+            }
+            if (cwFile.exists()) {
+                Files.copy(cwFile.toPath(), Paths.get(backupFolder, backupName + ".cw"));
+            }
+            sender.sendMessage("World '" + worldName + "' has been backed up as '" + backupName + "'.");
+            logger.info("Backed up world: " + worldName + " as " + backupName);
+        } catch (IOException e) {
+            sender.sendMessage("Failed to backup world '" + worldName + "'. Check server logs for details.");
+            logger.severe("Failed to backup world: " + e.getMessage());
+        }
+    }
+
+    private void restoreWorld(CommandSender sender, String worldName) {
+        File backupFolder = new File(this.backupFolder);
+        File[] backups = backupFolder.listFiles((dir, name) -> name.startsWith(worldName + "_"));
+
+        if (backups == null || backups.length == 0) {
+            sender.sendMessage("No backups found for world '" + worldName + "'.");
+            return;
+        }
+
+        // Sort backups by date (newest first)
+        Arrays.sort(backups, Comparator.comparingLong(File::lastModified).reversed());
+
+        File latestBackup = backups[0];
+        String backupName = latestBackup.getName().replace("_level.dat", "").replace(".cw", "");
+
+        try {
+            if (latestBackup.getName().endsWith("_level.dat")) {
+                Files.copy(latestBackup.toPath(), Paths.get(worldName + "_level.dat"),
+                        StandardCopyOption.REPLACE_EXISTING);
+            } else if (latestBackup.getName().endsWith(".cw")) {
+                Files.copy(latestBackup.toPath(), Paths.get(worldName + ".cw"), StandardCopyOption.REPLACE_EXISTING);
+            }
+            sender.sendMessage("World '" + worldName + "' has been restored from backup '" + backupName + "'.");
+            logger.info("Restored world: " + worldName + " from backup " + backupName);
+
+            // Reload the world if it's the active world
+            if (worldName.equals(activeWorldName)) {
+                switchWorld(worldName);
+            }
+        } catch (IOException e) {
+            sender.sendMessage("Failed to restore world '" + worldName + "'. Check server logs for details.");
+            logger.severe("Failed to restore world: " + e.getMessage());
+        }
+    }
+
+    private void showCurrentWorld(CommandSender sender) {
+        if (activeWorldName != null) {
+            sender.sendMessage("Current active world: " + activeWorldName);
+        } else {
+            sender.sendMessage("No world is currently active.");
+        }
     }
 
     private void deleteWorld(CommandSender sender, String worldName) {
@@ -292,7 +391,6 @@ public class WorldManager {
             sender.sendMessage("- " + generatorName);
         }
     }
-
 
     private void switchWorld(String worldName) {
         API.getInstance().sendGlobalMessage("Switching to world: " + worldName);
