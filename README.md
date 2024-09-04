@@ -71,8 +71,7 @@ Fukkit Server is an enhanced decompilation and recompilation of the Minecraft Cl
 
 ## 📚 Documentation
 
-Coming soon!
-
+[Check the wiki](https://github.com/amir16yp/Fukkit-Server/wiki/Developing-Plugins)
 ## 📄 License
 
 Fukkit Server is licensed under the [Unlicense](LICENSE).
