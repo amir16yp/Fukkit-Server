@@ -14,6 +14,7 @@ public class CPETesting {
     {
         API.getInstance().registerCommand("cpetest:setenv", this::testSetEnv, "cpetest");
         API.getInstance().registerCommand("cpetest:texturepack", this::testSetTexturePack, "cpetest");
+        API.getInstance().registerCommand("cpetest:weather", this::testSetWeather, "cpetest");
 
     }
 
@@ -28,6 +29,24 @@ public class CPETesting {
         {
             API.getInstance().broadcastTexturePack();
         }
+    }
+
+    private void testSetWeather(CommandSender sender, String[] args)
+    {
+        if (args.length < 1)
+        {
+            sender.sendMessage("usage: /cpetest:weather <type> (SUNNY, RAINING, SNOWY)");
+            return;
+        }
+        WeatherType weatherType;
+        try {
+            weatherType = WeatherType.valueOf(args[0]);
+        } catch (Exception exception)
+        {
+            sender.sendMessage(exception.getMessage());
+            return;
+        }
+        API.getInstance().broadcastWeather(weatherType);
     }
 
     private void testSetEnv(CommandSender sender, String[] args)
@@ -55,6 +74,6 @@ public class CPETesting {
         {
             redSkyRainEnvironment.broadcastToServer();
         }
-        API.getInstance().setEnvironment(redSkyRainEnvironment);
+        API.getInstance().setDefaultEnvironment(redSkyRainEnvironment);
     }
 }

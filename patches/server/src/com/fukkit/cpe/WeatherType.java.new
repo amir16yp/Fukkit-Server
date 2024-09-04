@@ -1,0 +1,17 @@
+package com.fukkit.cpe;
+
+public enum WeatherType {
+    SUNNY(0),
+    RAINING(1),
+    SNOWING(2);
+
+    private final byte value;
+
+    WeatherType(int value) {
+        this.value = (byte) value;
+    }
+
+    public byte getValue() {
+        return value;
+    }
+}

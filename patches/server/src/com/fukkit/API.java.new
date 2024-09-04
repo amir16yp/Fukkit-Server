@@ -5,6 +5,7 @@ import com.mojang.minecraft.server.MinecraftServer;
 import com.mojang.minecraft.server.NetworkManager;
 import com.fukkit.cpe.CPETesting;
 import com.fukkit.cpe.Environment;
+import com.fukkit.cpe.WeatherType;
 import com.mojang.minecraft.level.Level;
 import java.util.*;
 import java.util.function.BiConsumer;
@@ -21,17 +22,33 @@ public class API {
     public static Logger serverLogger = Logger.getLogger("MinecraftServer");
     private String globalTexturePackURL; 
 
-    private Environment defaulEnvironment;
+    private Environment defaultEnvironment;
+    private WeatherType defaultWeather;
 
-    public void setEnvironment(Environment environment)
+    public void setDefaultEnvironment(Environment environment)
     {
-        this.defaulEnvironment = environment;
-        defaulEnvironment.broadcastToServer();
+        this.defaultEnvironment = environment;
+        defaultEnvironment.broadcastToServer();
     }
 
-    public Environment getEnvironment()
+    public WeatherType getDefaultWeather()
     {
-        return this.defaulEnvironment;
+        return defaultWeather;
+    }
+
+    public void setDefaultWeather(WeatherType weatherType)
+    {
+        this.defaultWeather = weatherType;
+    }
+
+    public Environment getDefaultEnvironment()
+    {
+        return this.defaultEnvironment;
+    }
+
+    public void broadcastWeather(WeatherType weather)
+    {
+        API.getInstance().getServer().broadcastPacketToCPEClients(PacketType.ENV_SET_WEATHER_TYPE, new Object[]{weather.getValue()});
     }
 
 

@@ -25,6 +25,7 @@ public class CPENegotiation {
         this.mutuallySupported = new ArrayList<>();
         addServerSupportedExtension("LongerMessages", 1);
         addServerSupportedExtension("EnvColors", 1);
+        addServerSupportedExtension("EnvWeatherType", 1);
     }
 
     public void addServerSupportedExtension(String name, int version) {

@@ -1,5 +1,6 @@
 package com.fukkit;
 
+import com.fukkit.cpe.WeatherType;
 import com.mojang.minecraft.net.PacketType;
 import com.mojang.minecraft.server.NetworkManager;
 
@@ -20,6 +21,12 @@ public class Player implements CommandSender{
         return Location.fromRawCoordinates(handle.xSpawn, handle.ySpawn, handle.zSpawn);
     }
 
+    public void sendWeather(WeatherType weatherType)
+    {
+        if (!this.getHandle().cpeSupported) {return;}
+        this.getHandle().b(PacketType.ENV_SET_WEATHER_TYPE, new Object[]{weatherType.getValue()});
+    }
+
 
     public int getID() {
         return handle.playerID;
@@ -34,7 +41,7 @@ public class Player implements CommandSender{
         handle.b(PacketType.CHAT_MESSAGE, new Object[]{Integer.valueOf(-1), message});
     }
 
-    public void applyTextureURL(String url)
+    public void applyTexturePackURL(String url)
     {
         if (url != null)
         {
@@ -47,7 +54,7 @@ public class Player implements CommandSender{
 
     public void applyTextureURL()
     {
-        this.applyTextureURL(API.getInstance().getTexturePackURL());
+        this.applyTexturePackURL(API.getInstance().getTexturePackURL());
     }
 
     public void kick(String reason) {
