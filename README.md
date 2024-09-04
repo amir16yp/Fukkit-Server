@@ -14,7 +14,7 @@ Fukkit Server is an enhanced decompilation and recompilation of the Minecraft Cl
 - **Supports announcing to Classicube's server list and Classicube auth**
 - **Performance Optimizations**: Improved server efficiency for smoother gameplay.
 - **Extended Customization**: More options to tailor your server to your needs.
-- **CPE Support**: Partial CPE support. Currently only supports the LongerMessages extension.
+- **CPE Support**: Partial CPE support. See [tracking](https://github.com/amir16yp/Fukkit-Server/issues/2)
 ## 🚀 Quick Start
 
 1. Download the latest `.jar` file from the [Releases](https://github.com/amir16yp/Fukkit-Server/releases) page.
