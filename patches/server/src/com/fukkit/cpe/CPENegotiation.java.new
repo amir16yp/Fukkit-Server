@@ -27,6 +27,8 @@ public class CPENegotiation {
         addServerSupportedExtension("EnvColors", 1);
         addServerSupportedExtension("EnvWeatherType", 1);
         addServerSupportedExtension("MessageTypes", 1);
+        // addServerSupportedExtension("HeldBlock", 1);
+        addServerSupportedExtension("HackControl", 1);
     }
 
     public void addServerSupportedExtension(String name, int version) {

@@ -41,7 +41,7 @@
  
     public NetworkManager(MinecraftServer var1, NetworkHandler var2, int var3) {
        this.server = var1;
-@@ -49,135 +60,281 @@
+@@ -49,135 +60,289 @@
        this.xSpawn = (var4.xSpawn << 5) + 16;
        this.ySpawn = (var4.ySpawn << 5) + 16;
        this.zSpawn = (var4.zSpawn << 5) + 16;
@@ -128,6 +128,10 @@
 +      byte paddingByte = ((Byte) var2[3]).byteValue();
 +
 +      this.cpeSupported = cpeNegotiation.isCPEClient(paddingByte);
++      if (!this.cpeSupported && !Boolean.parseBoolean(server.getProperties().getProperty("allow-non-cpe")))
++      {
++          this.kickPlayer("non CPE clients are not allowed! Use enhanced mode");
++      }
 +      logger.info(
 +            this + " CPE support: " + (cpeSupported ? "Yes (padding byte: 0x" + String.format("%02X", paddingByte) + ")"
 +                  : "No (padding byte: 0x" + String.format("%02X", paddingByte) + ")"));
@@ -178,17 +182,6 @@
 +      if (this.server.playerManager2.containsPlayer(username)) {
 +         this.kickPlayer("You're banned!");
 +         return;
-+      }
-+
-+      if (this.server.adminSlot && !this.server.playerManager1.containsPlayer(username)
-+            && this.server.getAvailableSlots() < 1) {
-+         this.kickPlayer("The server is full!");
-+         return;
-+      }
-+
-+      NetworkManager existingPlayer = this.server.c(username);
-+      if (existingPlayer != null) {
-+         existingPlayer.kickPlayer("You logged in from another computer.");
        }
 -   }
  
@@ -199,6 +192,17 @@
 -         this.timeTillTalk = 760;
 -         this.b(PacketType.CHAT_MESSAGE, new Object[]{Integer.valueOf(-1), "Too much chatter! Muted for eight seconds."});
 -         logger.info("Muting " + this.playerName + " for chatting too much");
++      if (this.server.adminSlot && !this.server.playerManager1.containsPlayer(username)
++            && this.server.getAvailableSlots() < 1) {
++         this.kickPlayer("The server is full!");
++         return;
++      }
++
++      NetworkManager existingPlayer = this.server.c(username);
++      if (existingPlayer != null) {
++         existingPlayer.kickPlayer("You logged in from another computer.");
++      }
++
 +
 +      logger.info(this + " logged in as " + username);
 +      this.l = true;
@@ -283,6 +287,10 @@
 +         if (this.p.size() > 1200) {
 +            this.d("Too much lag");
 +         } else {
++            if (this.cpeSupported)
++            {
++               new Player(this).currentlyHeldBlock = ((Byte)var2[0]).byteValue();
++            }
 +            this.p.add(var2);
 +         }
 +      } else {
@@ -313,7 +321,7 @@
 +      if (this.cpeSupported)
 +      {
 +         sendCPERelatedWelcome();
-       }
++      }
 +  }
 +
 +  private void sendCPERelatedWelcome()
@@ -325,25 +333,25 @@
 +      if (!texturePackURL.isEmpty())
 +      {
 +         player.applyTexturePackURL(texturePackURL);
-+      }
-+   }
+       }
+    }
 +   if (API.getInstance().getDefaultEnvironment() != null)
 +   {
 +      API.getInstance().getDefaultEnvironment().applyTo(player);
 +   }
 +
 +   WeatherType weatherType = API.getInstance().getDefaultWeather();
-+
-+   if (weatherType != null)
-+   {
-+      player.sendWeather(weatherType);
-    }
-+  }
  
 -   public final void a(String var1) {
 -      this.networkHandler.send(PacketType.DISCONNECT, new Object[]{var1});
 -      logger.info("Kicking " + this + ": " + var1);
 -      this.server.a(this);
++   if (weatherType != null)
++   {
++      player.sendWeather(weatherType);
++   }
++  }
++
 +  private static final int MAX_MESSAGE_LENGTH = 64; // Define the maximum length for each message part
 +
 +  private void handleChatMessage(Object[] var2) {
@@ -421,7 +429,7 @@
     }
  
     public final void a(byte[] var1) {
-@@ -185,22 +342,22 @@
+@@ -185,22 +350,22 @@
     }
  
     public final void a() {
@@ -450,7 +458,7 @@
              byte var3;
              byte var4;
              short var5;
-@@ -210,110 +367,172 @@
+@@ -210,110 +375,172 @@
              short var10002;
              short var10003;
              byte var10004;
@@ -695,7 +703,7 @@
           Level var11 = this.server.mainLevel;
           byte[] var15 = new byte[1024];
           int var20 = 0;
-@@ -321,37 +540,50 @@
+@@ -321,37 +548,50 @@
           this.networkHandler.send(PacketType.LEVEL_INITIALIZE, new Object[0]);
  
           int var17;
@@ -759,7 +767,7 @@
              this.b(var14, var2);
           }
  
-@@ -360,8 +592,8 @@
+@@ -360,8 +600,8 @@
        }
     }
  
@@ -770,7 +778,7 @@
           this.n.add(var1);
           this.n.add(var2);
        } else {
-@@ -370,16 +602,13 @@
+@@ -370,16 +610,13 @@
     }
  
     public final void a(Exception var1) {

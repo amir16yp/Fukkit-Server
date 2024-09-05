@@ -22,7 +22,7 @@ public class API {
     private PermissionManager permissionManager;
     public static Logger serverLogger = Logger.getLogger("MinecraftServer");
     private String globalTexturePackURL; 
-
+    
     private Environment defaultEnvironment;
     private WeatherType defaultWeather;
 

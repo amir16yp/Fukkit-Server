@@ -3,6 +3,7 @@ package com.fukkit.cpe;
 import com.fukkit.API;
 import com.fukkit.CommandSender;
 import com.fukkit.Player;
+import com.mojang.minecraft.level.tile.Block;
 
 public class CPETesting {
     public CPETesting()
@@ -16,7 +17,29 @@ public class CPETesting {
         API.getInstance().registerCommand("cpetest:texturepack", this::testSetTexturePack, "cpetest");
         API.getInstance().registerCommand("cpetest:weather", this::testSetWeather, "cpetest");
         API.getInstance().registerCommand("cpetest:specialmsg", this::testSpecialMessage, "cpetest");
+        API.getInstance().registerCommand("cpetest:heldblock", this::testHeldBlock, "cpetest");
+        API.getInstance().registerCommand("cpetest:hackcontrol", this::testHackControl, "cpetest");
+    }
 
+    private void testHackControl(CommandSender sender, String[] args)
+    {
+        if (sender instanceof Player)
+        {
+            Player player = (Player) sender;
+            HackControl hackControl = player.getHackControl();
+            hackControl.setSpeeding(!hackControl.isSpeeding());
+            hackControl.setNoClip(!hackControl.isNoClip());;
+        }
+    }
+
+    private void testHeldBlock(CommandSender sender, String[] args)
+    {
+        if (sender instanceof Player)
+        {
+            Player player = (Player) sender;
+            player.sendMessage(String.valueOf(player.currentlyHeldBlock));
+            player.setHeldBlock(Block.getRandomBlock());
+        }
     }
 
     private void testSpecialMessage(CommandSender sender, String[] args)

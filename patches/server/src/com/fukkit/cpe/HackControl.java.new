@@ -1,0 +1,113 @@
+package com.fukkit.cpe;
+
+import com.fukkit.API;
+import com.fukkit.Player;
+import com.mojang.minecraft.net.PacketType;
+
+public class HackControl {
+    private boolean flying;
+    private boolean noClip;
+    private boolean speeding;
+    private boolean spawnControl;
+    private boolean thirdPersonView;
+    private short jumpHeight;
+    private Player player;
+
+    public HackControl(Player player) {
+        // Default values
+        setDefaults();
+        this.player = player;
+    }
+
+    private void setDefaults()
+    {
+        this.flying = true;
+        this.noClip = true;
+        this.speeding = true;
+        this.spawnControl = true;
+        this.thirdPersonView = true;
+        this.jumpHeight = -1; // Default jump height
+    }
+
+    public HackControl()
+    {
+        setDefaults();
+    }
+
+    public boolean isFlying() {
+        return flying;
+    }
+
+    public void setFlying(boolean flying) {
+        this.flying = flying;
+        update();
+    }
+
+    public boolean isNoClip() {
+        return noClip;
+    }
+
+    public void setNoClip(boolean noClip) {
+        this.noClip = noClip;
+        update();
+    }
+
+    public boolean isSpeeding() {
+        return speeding;
+    }
+
+    public void setSpeeding(boolean speeding) {
+        this.speeding = speeding;
+        update();
+    }
+
+    public boolean isSpawnControl() {
+        return spawnControl;
+    }
+
+    public void setSpawnControl(boolean spawnControl) {
+        this.spawnControl = spawnControl;
+        update();
+    }
+
+    public boolean isThirdPersonView() {
+        return thirdPersonView;
+    }
+
+    public void setThirdPersonView(boolean thirdPersonView) {
+        this.thirdPersonView = thirdPersonView;
+        update();
+    }
+
+    public short getJumpHeight() {
+        return jumpHeight;
+    }
+
+    public void setJumpHeight(short jumpHeight) {
+        this.jumpHeight = jumpHeight;
+        update();
+    }
+
+    public void update()
+    {
+        if (this.player != null)
+        {
+            this.player.getHandle().b(PacketType.HACK_CONTROL, this.toPacketData());
+        }
+        else{
+            API.getInstance().getServer().broadcastPacketToCPEClients(PacketType.HACK_CONTROL, this.toPacketData());
+        }
+    }
+
+   private Object[] toPacketData() {
+        return new Object[] {
+            (byte) (flying ? 1 : 0),
+            (byte) (noClip ? 1 : 0),
+            (byte) (speeding ? 1 : 0),
+            (byte) (spawnControl ? 1 : 0),
+            (byte) (thirdPersonView ? 1 : 0),
+            jumpHeight
+        };
+    }
+
+}

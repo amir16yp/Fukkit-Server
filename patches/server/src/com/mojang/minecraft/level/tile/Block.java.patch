@@ -1,6 +1,6 @@
 --- a/src/com/mojang/minecraft/level/tile/Block.java
 +++ b/src/com/mojang/minecraft/level/tile/Block.java
-@@ -3,27 +3,9 @@
+@@ -3,27 +3,11 @@
  import com.mojang.minecraft.Vector3DCreator;
  import com.mojang.minecraft.level.Level;
  import com.mojang.minecraft.level.liquid.LiquidType;
@@ -26,10 +26,12 @@
  import com.mojang.minecraft.model.Vector3D;
  import com.mojang.minecraft.phys.AABB;
 +
++import java.util.ArrayList;
++import java.util.List;
  import java.util.Random;
  
  public class Block {
-@@ -86,7 +68,7 @@
+@@ -86,7 +70,7 @@
     public static final Block OBSIDIAN;
     public final int id;
     public Tile$SoundType stepsound;
@@ -38,7 +40,7 @@
     private float x1;
     private float y1;
     private float z1;
-@@ -105,6 +87,11 @@
+@@ -105,6 +89,11 @@
        liquid[var1] = false;
     }
  
@@ -49,4 +51,26 @@
 +
     public boolean isCube() {
        return true;
+    }
+@@ -179,6 +168,21 @@
+       }
+    }
+ 
++   public static Block getRandomBlock()
++   {
++      List<Block> nonNullBlocks = new ArrayList<>();
++      for (Block block : blocks)
++      {
++         if (block != null)
++         {
++            nonNullBlocks.add(block);
++         }
++      }
++      int randomIndex = random.nextInt(nonNullBlocks.size());
++      Block randomBlock = nonNullBlocks.get(randomIndex);
++      return randomBlock;
++   }
++
+    public final boolean canExplode() {
+       return this.explodes;
     }
