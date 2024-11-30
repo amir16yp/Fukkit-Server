@@ -1,4 +1,7 @@
 # Fukkit Server
+# THIS PROJECT IS DEFUNCT
+
+This project is archived, development effort has moved to a complete rewrite of the server.jar here: https://github.com/amir16yp/classicserver-rewritten
 
 ![Fukkit Server Logo](https://github.com/user-attachments/assets/5d3d4d32-d588-4d05-b901-c28d328999f9)
 
